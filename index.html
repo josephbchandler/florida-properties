@@ -92,15 +92,10 @@
   .pill-filter.on-fav { border-color: #fbbf24; color: #fbbf24; }
   .pill-filter.on-down { border-color: #f87171; color: #f87171; }
 
-  .editable { cursor: pointer; border-bottom: 1px dashed #333; }
-  .editable:hover { border-bottom-color: #4a7dff; }
-  .edit-input { background: #252836; border: 1px solid #4a7dff; border-radius: 4px; color: #fff; padding: 2px 6px; font-size: 13px; width: 80px; outline: none; }
-  .edit-input.wide { width: 140px; }
-  .saved-flash { animation: flash 0.6s; }
-  @keyframes flash { 0%,100% { background: transparent; } 30% { background: rgba(52,211,153,0.15); } }
-
   .add-btn { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; color: #34d399; padding: 6px 12px; cursor: pointer; font-size: 13px; }
   .add-btn:hover { border-color: #34d399; }
+  .edit-btn { background: none; border: none; cursor: pointer; font-size: 12px; color: #555; opacity: 0.3; padding: 2px 4px; }
+  .edit-btn:hover { opacity: 1; color: #60a5fa; }
   .del-btn { background: none; border: none; cursor: pointer; font-size: 12px; color: #555; opacity: 0.3; padding: 2px 4px; }
   .del-btn:hover { opacity: 1; color: #f87171; }
 
@@ -249,33 +244,55 @@ function toggleState(i, target) {
   render();
 }
 
-// --- Inline editing ---
-function startEdit(el, idx, field, isNum) {
-  if (el.querySelector('.edit-input')) return;
-  const val = DATA[idx][field];
-  const display = el.innerHTML;
-  const cls = field === 'concession' ? 'edit-input wide' : 'edit-input';
-  el.innerHTML = `<input class="${cls}" value="${val}" data-idx="${idx}" data-field="${field}" data-num="${isNum?1:0}">`;
-  const input = el.querySelector('input');
-  input.focus();
-  input.select();
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { el.innerHTML = display; } });
-  input.addEventListener('blur', () => finishEdit(el, input));
+// --- Edit property modal ---
+function showEditModal(idx) {
+  const d = DATA[idx];
+  const modal = document.getElementById('addModal');
+  modal.style.display = '';
+  modal.className = 'modal-bg';
+  modal.innerHTML = `<div class="modal">
+    <h2>Edit Property</h2>
+    <label>Name</label><input id="ep_name" value="${(d.name||'').replace(/"/g,'&quot;')}">
+    <label>Address</label><input id="ep_address" value="${(d.address||'').replace(/"/g,'&quot;')}">
+    <div class="row"><div><label>Area</label><input id="ep_area" value="${d.area||''}"></div><div><label>2BR Price</label><input id="ep_price" type="number" value="${d.price||''}"></div></div>
+    <div class="row"><div><label>Concession</label><input id="ep_concession" value="${(d.concession||'').replace(/"/g,'&quot;')}"></div><div><label>Rating</label><input id="ep_rating" type="number" step="0.1" value="${d.rating||''}"></div></div>
+    <div class="row"><div><label>Year Built</label><input id="ep_year" type="number" value="${d.year||''}"></div><div><label>Safety Grade</label><input id="ep_safety" value="${d.safety||''}"></div></div>
+    <div class="row"><div><label>Walk Score</label><input id="ep_walk" type="number" value="${d.walk||''}"></div><div><label>DT St. Pete (min)</label><input id="ep_dt" type="number" value="${d.dt_stpete||''}"></div></div>
+    <div class="row"><div><label>Nearest Beach</label><input id="ep_beach" value="${d.nearest_beach||''}"></div><div><label>Beach Drive Time</label><input id="ep_beach_drive" value="${d.beach_drive||''}"></div></div>
+    <label>Website</label><input id="ep_website" value="${(d.website||'').replace(/"/g,'&quot;')}">
+    <div class="row"><div><label>Zillow URL</label><input id="ep_zillow" value="${(d.zillow||'').replace(/"/g,'&quot;')}"></div><div><label>Phone</label><input id="ep_phone" value="${d.phone||''}"></div></div>
+    <div class="row"><div><label>Latitude</label><input id="ep_lat" type="number" step="0.0001" value="${d.lat||''}"></div><div><label>Longitude</label><input id="ep_lng" type="number" step="0.0001" value="${d.lng||''}"></div></div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="document.getElementById('addModal').style.display='none'">Cancel</button>
+      <button class="save" style="background:#f87171" onclick="deleteProperty(${idx})">Delete</button>
+      <button class="save" onclick="saveEdit(${idx})">Save</button>
+    </div>
+  </div>`;
 }
 
-function finishEdit(el, input) {
-  const idx = parseInt(input.dataset.idx);
-  const field = input.dataset.field;
-  const isNum = input.dataset.num === '1';
-  let val = input.value.trim();
-  if (isNum) val = parseFloat(val) || 0;
-  DATA[idx][field] = val;
-  DATA[idx].effective = calcEffective(DATA[idx].price, DATA[idx].concession);
+function saveEdit(idx) {
+  const d = DATA[idx];
+  d.name = document.getElementById('ep_name').value.trim();
+  d.address = document.getElementById('ep_address').value.trim();
+  d.area = document.getElementById('ep_area').value.trim();
+  d.price = parseFloat(document.getElementById('ep_price').value) || 0;
+  d.concession = document.getElementById('ep_concession').value.trim();
+  d.rating = parseFloat(document.getElementById('ep_rating').value) || 0;
+  d.year = parseInt(document.getElementById('ep_year').value) || 0;
+  d.safety = document.getElementById('ep_safety').value.trim() || 'N/A';
+  d.walk = parseInt(document.getElementById('ep_walk').value) || 0;
+  d.dt_stpete = parseInt(document.getElementById('ep_dt').value) || 0;
+  d.nearest_beach = document.getElementById('ep_beach').value.trim();
+  d.beach_drive = document.getElementById('ep_beach_drive').value.trim();
+  d.website = document.getElementById('ep_website').value.trim();
+  d.zillow = document.getElementById('ep_zillow').value.trim();
+  d.phone = document.getElementById('ep_phone').value.trim();
+  d.lat = parseFloat(document.getElementById('ep_lat').value) || 0;
+  d.lng = parseFloat(document.getElementById('ep_lng').value) || 0;
+  document.getElementById('addModal').style.display = 'none';
   saveAll();
+  refreshAreas();
   render();
-  // Flash the row
-  const row = document.querySelector(`tr[data-row="${idx}"]`);
-  if (row) { row.classList.add('saved-flash'); setTimeout(() => row.classList.remove('saved-flash'), 600); }
 }
 
 // --- Delete property ---
@@ -447,13 +464,13 @@ function render() {
       </td>
       <td><span class="prop-name">${d.name}</span><br><span style="color:#666;font-size:11px">${d.address}</span></td>
       <td>${d.area}</td>
-      <td class="price editable" onclick="startEdit(this,${d._i},'price',true)">$${d.price.toLocaleString()}</td>
-      <td class="editable" onclick="startEdit(this,${d._i},'concession',false)">${d.concession ? `<span class="concession">${d.concession}</span>` : '<span style="color:#555">click to add</span>'}</td>
+      <td class="price">$${d.price.toLocaleString()}</td>
+      <td>${d.concession ? `<span class="concession">${d.concession}</span>` : '—'}</td>
       <td class="price">${d.effective < d.price ? '<span style="color:#34d399">$'+d.effective.toLocaleString()+'</span> <span style="color:#666;font-size:11px">(-$'+(d.price - d.effective).toLocaleString()+')</span>' : '—'}</td>
       <td>${d.dt_stpete} min</td>
       <td>${d.beach_drive}</td>
       <td>${d.nearest_beach||''}</td>
-      <td class="editable" onclick="startEdit(this,${d._i},'rating',true)"><span class="rating"><span class="star">★</span> ${d.rating}</span></td>
+      <td><span class="rating"><span class="star">★</span> ${d.rating}</span></td>
       <td><span class="walk-score ${walkClass(d.walk)}">${d.walk}</span></td>
       <td><span class="safety ${safetyClass(d.safety)}">${d.safety}</span></td>
       <td>${d.year}</td>
@@ -462,7 +479,7 @@ function render() {
         ${d.zillow ? ` · <a href="${d.zillow}" target="_blank">Zillow</a>` : ''}
         ${d.phone ? `<br><span style="color:#888;font-size:11px">${d.phone}</span>` : ''}
       </td>
-      <td><button class="del-btn" onclick="deleteProperty(${d._i})" title="Remove">🗑</button></td>
+      <td><button class="edit-btn" onclick="showEditModal(${d._i})" title="Edit">✏️</button></td>
     </tr>`;
   }).join('');
 }
