@@ -91,6 +91,33 @@
   .pill-filter { display: flex; align-items: center; gap: 6px; background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; padding: 6px 12px; cursor: pointer; color: #e0e0e0; font-size: 13px; user-select: none; }
   .pill-filter.on-fav { border-color: #fbbf24; color: #fbbf24; }
   .pill-filter.on-down { border-color: #f87171; color: #f87171; }
+
+  .editable { cursor: pointer; border-bottom: 1px dashed #333; }
+  .editable:hover { border-bottom-color: #4a7dff; }
+  .edit-input { background: #252836; border: 1px solid #4a7dff; border-radius: 4px; color: #fff; padding: 2px 6px; font-size: 13px; width: 80px; outline: none; }
+  .edit-input.wide { width: 140px; }
+  .saved-flash { animation: flash 0.6s; }
+  @keyframes flash { 0%,100% { background: transparent; } 30% { background: rgba(52,211,153,0.15); } }
+
+  .add-btn { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; color: #34d399; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+  .add-btn:hover { border-color: #34d399; }
+  .del-btn { background: none; border: none; cursor: pointer; font-size: 12px; color: #555; opacity: 0.3; padding: 2px 4px; }
+  .del-btn:hover { opacity: 1; color: #f87171; }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .modal { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 12px; padding: 24px; width: 480px; max-height: 90vh; overflow-y: auto; }
+  .modal h2 { font-size: 16px; color: #fff; margin-bottom: 16px; }
+  .modal label { display: block; font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 4px; margin-top: 12px; }
+  .modal input, .modal select { width: 100%; background: #252836; border: 1px solid #2a2d3a; border-radius: 6px; color: #e0e0e0; padding: 8px 10px; font-size: 13px; outline: none; }
+  .modal input:focus { border-color: #4a7dff; }
+  .modal .row { display: flex; gap: 12px; }
+  .modal .row > div { flex: 1; }
+  .modal-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-actions button { padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; border: none; }
+  .modal-actions .save { background: #34d399; color: #000; font-weight: 600; }
+  .modal-actions .cancel { background: #252836; color: #888; border: 1px solid #2a2d3a; }
+
+  .loading { text-align: center; padding: 60px; color: #666; font-size: 15px; }
 </style>
 </head>
 <body>
@@ -103,6 +130,7 @@
   <a href="map.html" style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:8px;color:#60a5fa;padding:8px 16px;font-size:13px;text-decoration:none;">Map View</a>
 </div>
 
+<div id="loadingMsg" class="loading">Loading properties...</div>
 <div class="stats" id="stats"></div>
 
 <div class="controls">
@@ -110,6 +138,7 @@
   <select id="areaFilter"><option value="">All Areas</option></select>
   <div class="pill-filter" id="favFilter">★ Favorites only</div>
   <div class="pill-filter" id="hideDownFilter">Hide rejected</div>
+  <button class="add-btn" onclick="showAddModal()">+ Add Property</button>
   <select id="concessionFilter">
     <option value="">All Properties</option>
     <option value="has">Has Concession</option>
@@ -135,14 +164,22 @@
         <th data-sort="safety">Safety <span class="arrow"></span></th>
         <th data-sort="year">Year Built <span class="arrow"></span></th>
         <th>Links</th>
+        <th style="width:30px;cursor:default"></th>
       </tr>
     </thead>
     <tbody id="tbody"></tbody>
   </table>
 </div>
 
+<div id="addModal" style="display:none"></div>
+
 <script>
-const DATA = [
+// --- Config ---
+const BIN_ID = '69dc60e5856a6821892957ac';
+const BIN_KEY = '$2a$10$SRUgPWxtOoUNlzr7cKyM2eC.k7uhVXgyf/GUrpd7jsoi5nWQVRCj6';
+const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+
+let DATA = [
   {name:"ARIUM Bristol Bay",area:"Bradenton",beach_drive:"15 min",dt_stpete:25,website:"https://ariumliving.com/bradenton-fl/bristol-bay/",price:1603,concession:"",nearest_beach:"Holmes Beach",rating:4.5,address:"11001 Bristol Bay Dr, Bradenton, FL 34209",zillow:"https://www.zillow.com/apartments/bradenton-fl/arium-bristol-bay/5Xhz8Y/",year:1989,phone:"(941) 216-2965",walk:2,safety:"A+"},
   {name:"The Preserve at Gateway",area:"Saint Petersburg",beach_drive:"25 min",dt_stpete:10,website:"https://www.udr.com/tampa-apartments/st-petersburg/the-preserve-at-gateway/",price:1787,concession:"",nearest_beach:"St. Pete Beach",rating:4.3,address:"11800 Dr Martin Luther King Jr St N, Saint Petersburg, FL 33716",zillow:"https://www.zillow.com/apartments/saint-petersburg-fl/the-preserve-at-gateway/5YvqvP/",year:2013,phone:"(727) 216-8749",walk:16,safety:"A"},
   {name:"The Blake at Bradenton",area:"Bradenton",beach_drive:"20 min",dt_stpete:25,website:"https://www.theblakeatbradenton.com/",price:1791,concession:"1 month free",nearest_beach:"Cortez Beach",rating:5,address:"6415 21st Avenue West, Bradenton, FL 34209",zillow:"https://www.zillow.com/apartments/bradenton-fl/the-blake-at-bradenton/CjKgzx/",year:1997,phone:"(941) 263-7016",walk:21,safety:"A+"},
@@ -174,101 +211,171 @@ const DATA = [
   {name:"Cortland Satori",area:"Pinellas Park",beach_drive:"18 min",dt_stpete:20,website:"https://cortland.com/apartments/cortland-satori/",price:2379,concession:"1 month free",nearest_beach:"Treasure Island",rating:4.5,address:"3110 Grand Ave, Pinellas Park, FL 33782",zillow:"",year:2020,phone:"(727) 610-2844",walk:40,safety:"C+"}
 ];
 
-// --- Shared state via jsonbin.io ---
-const BIN_ID = '69dc60e5856a6821892957ac';
-const BIN_KEY = '$2a$10$SRUgPWxtOoUNlzr7cKyM2eC.k7uhVXgyf/GUrpd7jsoi5nWQVRCj6';
-const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+// --- State + Data from JSONBin ---
 const states = {};
+let saving = false;
 
-async function loadStates() {
+async function loadAll() {
   try {
-    const resp = await fetch(BIN_URL + '/latest', {
-      headers: { 'X-Master-Key': BIN_KEY }
-    });
-    const data = await resp.json();
-    Object.assign(states, (data.record && data.record.states) || {});
-    render();
-  } catch(e) {
-    try {
-      const saved = JSON.parse(localStorage.getItem('fl-prop-states') || '{}');
-      Object.assign(states, saved);
-    } catch(e2) {}
-    render();
-  }
+    const resp = await fetch(BIN_URL + '/latest', { headers: { 'X-Master-Key': BIN_KEY } });
+    const json = await resp.json();
+    const rec = json.record || {};
+    if (rec.properties && rec.properties.length) DATA = rec.properties;
+    Object.assign(states, rec.states || {});
+  } catch(e) { console.error('Load failed, using fallback data:', e); }
+  document.getElementById('loadingMsg').style.display = 'none';
+  initUI();
 }
 
-async function saveStates() {
-  localStorage.setItem('fl-prop-states', JSON.stringify(states));
+async function saveAll() {
+  if (saving) return;
+  saving = true;
+  // Strip computed fields before saving
+  const clean = DATA.map(d => { const c = {...d}; delete c.effective; delete c._i; return c; });
   try {
     await fetch(BIN_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY },
-      body: JSON.stringify({ states })
+      body: JSON.stringify({ properties: clean, states })
     });
-  } catch(e) { console.error('Sync failed:', e); }
+  } catch(e) { console.error('Save failed:', e); }
+  saving = false;
 }
 
 function getState(i) { return states[i] || 0; }
 function toggleState(i, target) {
   states[i] = getState(i) === target ? 0 : target;
-  saveStates();
+  saveAll();
   render();
 }
-loadStates();
 
-// Populate area filter
-const areas = [...new Set(DATA.map(d => d.area))].sort();
-const areaSelect = document.getElementById('areaFilter');
-areas.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; areaSelect.appendChild(o); });
+// --- Inline editing ---
+function startEdit(el, idx, field, isNum) {
+  if (el.querySelector('.edit-input')) return;
+  const val = DATA[idx][field];
+  const display = el.innerHTML;
+  const cls = field === 'concession' ? 'edit-input wide' : 'edit-input';
+  el.innerHTML = `<input class="${cls}" value="${val}" data-idx="${idx}" data-field="${field}" data-num="${isNum?1:0}">`;
+  const input = el.querySelector('input');
+  input.focus();
+  input.select();
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { el.innerHTML = display; } });
+  input.addEventListener('blur', () => finishEdit(el, input));
+}
 
+function finishEdit(el, input) {
+  const idx = parseInt(input.dataset.idx);
+  const field = input.dataset.field;
+  const isNum = input.dataset.num === '1';
+  let val = input.value.trim();
+  if (isNum) val = parseFloat(val) || 0;
+  DATA[idx][field] = val;
+  DATA[idx].effective = calcEffective(DATA[idx].price, DATA[idx].concession);
+  saveAll();
+  render();
+  // Flash the row
+  const row = document.querySelector(`tr[data-row="${idx}"]`);
+  if (row) { row.classList.add('saved-flash'); setTimeout(() => row.classList.remove('saved-flash'), 600); }
+}
+
+// --- Delete property ---
+function deleteProperty(idx) {
+  if (!confirm('Remove ' + DATA[idx].name + '?')) return;
+  DATA.splice(idx, 1);
+  // Reindex states
+  const newStates = {};
+  Object.keys(states).forEach(k => {
+    const ki = parseInt(k);
+    if (ki < idx) newStates[ki] = states[ki];
+    else if (ki > idx) newStates[ki - 1] = states[ki];
+  });
+  Object.keys(states).forEach(k => delete states[k]);
+  Object.assign(states, newStates);
+  saveAll();
+  refreshAreas();
+  render();
+}
+
+// --- Add property modal ---
+function showAddModal() {
+  document.getElementById('addModal').style.display = '';
+  document.getElementById('addModal').className = 'modal-bg';
+  document.getElementById('addModal').innerHTML = `<div class="modal">
+    <h2>Add Property</h2>
+    <label>Name *</label><input id="ap_name">
+    <label>Address *</label><input id="ap_address">
+    <div class="row"><div><label>Area *</label><input id="ap_area" placeholder="e.g. Bradenton"></div><div><label>2BR Price *</label><input id="ap_price" type="number"></div></div>
+    <div class="row"><div><label>Concession</label><input id="ap_concession" placeholder="e.g. 2 months free"></div><div><label>Rating</label><input id="ap_rating" type="number" step="0.1" placeholder="4.5"></div></div>
+    <div class="row"><div><label>Year Built</label><input id="ap_year" type="number"></div><div><label>Safety Grade</label><input id="ap_safety" placeholder="A+, A, B+, etc."></div></div>
+    <div class="row"><div><label>Walk Score</label><input id="ap_walk" type="number"></div><div><label>DT St. Pete (min)</label><input id="ap_dt" type="number"></div></div>
+    <div class="row"><div><label>Nearest Beach</label><input id="ap_beach"></div><div><label>Beach Drive Time</label><input id="ap_beach_drive" placeholder="e.g. 15 min"></div></div>
+    <label>Website</label><input id="ap_website">
+    <div class="row"><div><label>Zillow URL</label><input id="ap_zillow"></div><div><label>Phone</label><input id="ap_phone"></div></div>
+    <div class="row"><div><label>Latitude (for map)</label><input id="ap_lat" type="number" step="0.0001"></div><div><label>Longitude (for map)</label><input id="ap_lng" type="number" step="0.0001"></div></div>
+    <div class="modal-actions"><button class="cancel" onclick="closeAddModal()">Cancel</button><button class="save" onclick="addProperty()">Add</button></div>
+  </div>`;
+}
+
+function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
+
+function addProperty() {
+  const name = document.getElementById('ap_name').value.trim();
+  const address = document.getElementById('ap_address').value.trim();
+  const area = document.getElementById('ap_area').value.trim();
+  const price = parseFloat(document.getElementById('ap_price').value) || 0;
+  if (!name || !address || !area || !price) { alert('Name, address, area, and price are required.'); return; }
+  const prop = {
+    name, address, area, price,
+    concession: document.getElementById('ap_concession').value.trim(),
+    rating: parseFloat(document.getElementById('ap_rating').value) || 0,
+    year: parseInt(document.getElementById('ap_year').value) || 0,
+    safety: document.getElementById('ap_safety').value.trim() || 'N/A',
+    walk: parseInt(document.getElementById('ap_walk').value) || 0,
+    dt_stpete: parseInt(document.getElementById('ap_dt').value) || 0,
+    nearest_beach: document.getElementById('ap_beach').value.trim(),
+    beach_drive: document.getElementById('ap_beach_drive').value.trim(),
+    website: document.getElementById('ap_website').value.trim(),
+    zillow: document.getElementById('ap_zillow').value.trim(),
+    phone: document.getElementById('ap_phone').value.trim(),
+    lat: parseFloat(document.getElementById('ap_lat').value) || 0,
+    lng: parseFloat(document.getElementById('ap_lng').value) || 0
+  };
+  DATA.push(prop);
+  saveAll();
+  closeAddModal();
+  refreshAreas();
+  render();
+}
+
+// --- Core UI ---
 function parseDrive(s) { return parseInt(s) || 99; }
-
-function safetyClass(s) {
-  return 'safety-' + s.toLowerCase().replace('-','-minus').replace('+','-plus');
-}
-
-function walkClass(w) {
-  if (w >= 50) return 'ws-high';
-  if (w >= 20) return 'ws-mid';
-  return 'ws-low';
-}
-
-let sortCol = 'price';
-let sortAsc = true;
-let showFavsOnly = false;
-let hideDown = false;
-
-function toggleFavFilter() {
-  showFavsOnly = !showFavsOnly;
-  document.getElementById('favFilter').classList.toggle('on-fav', showFavsOnly);
-  render();
-}
-
-function toggleHideDown() {
-  hideDown = !hideDown;
-  document.getElementById('hideDownFilter').classList.toggle('on-down', hideDown);
-  render();
-}
-
-document.getElementById('favFilter').addEventListener('click', toggleFavFilter);
-document.getElementById('hideDownFilter').addEventListener('click', toggleHideDown);
-
+function safetyClass(s) { return 'safety-' + (s||'').toLowerCase().replace('-','-minus').replace('+','-plus'); }
+function walkClass(w) { return w >= 50 ? 'ws-high' : w >= 20 ? 'ws-mid' : 'ws-low'; }
 const safetyOrder = {'A+':8,'A':7,'A-':6,'B+':5,'B':4,'B-':3,'C+':2,'C':1};
 
 function calcEffective(price, concession) {
   if (!concession) return price;
   const c = concession.toLowerCase();
-  let monthsFree = 0;
   const numMatch = c.match(/([\d.]+)/);
   if (!numMatch) return price;
   const num = parseFloat(numMatch[1]);
-  if (c.includes('half month')) { monthsFree = num * 0.5; }
-  else if (c.includes('week')) { monthsFree = num / 4.33; }
-  else if (c.includes('month')) { monthsFree = num; }
+  let monthsFree = 0;
+  if (c.includes('half month')) monthsFree = num * 0.5;
+  else if (c.includes('week')) monthsFree = num / 4.33;
+  else if (c.includes('month')) monthsFree = num;
   return Math.round(price * (12 - monthsFree) / 12);
 }
 
-DATA.forEach((d, i) => { d.effective = calcEffective(d.price, d.concession); d._i = i; });
+let sortCol = 'price', sortAsc = true, showFavsOnly = false, hideDown = false;
+
+function refreshAreas() {
+  const sel = document.getElementById('areaFilter');
+  const cur = sel.value;
+  const areas = [...new Set(DATA.map(d => d.area))].sort();
+  sel.innerHTML = '<option value="">All Areas</option>';
+  areas.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
+  sel.value = cur;
+}
 
 function sortData(arr) {
   return arr.sort((a,b) => {
@@ -292,12 +399,13 @@ function updateHeaders() {
 }
 
 function render() {
+  DATA.forEach((d, i) => { d.effective = calcEffective(d.price, d.concession); d._i = i; });
   const q = document.getElementById('search').value.toLowerCase();
   const area = document.getElementById('areaFilter').value;
   const conc = document.getElementById('concessionFilter').value;
 
   let filtered = DATA.filter(d => {
-    if (q && ![d.name, d.area, d.nearest_beach, d.address].some(f => f.toLowerCase().includes(q))) return false;
+    if (q && ![d.name, d.area, d.nearest_beach||'', d.address].some(f => f.toLowerCase().includes(q))) return false;
     if (area && d.area !== area) return false;
     if (conc === 'has' && !d.concession) return false;
     if (conc === 'none' && d.concession) return false;
@@ -324,16 +432,13 @@ function render() {
   `;
 
   const tbody = document.getElementById('tbody');
-  if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="14" class="no-results">No properties match your filters</td></tr>';
-    return;
-  }
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="15" class="no-results">No properties match your filters</td></tr>'; return; }
 
   tbody.innerHTML = filtered.map(d => {
     const s = getState(d._i);
-    const rowClass = s === 2 ? ' row-dimmed' : '';
+    const rowClass = s === 2 ? 'row-dimmed' : '';
     return `
-    <tr class="${rowClass}">
+    <tr class="${rowClass}" data-row="${d._i}">
       <td>
         <div class="actions-cell">
           <button class="act-btn fav ${s===1?'on':''}" data-idx="${d._i}" data-action="1">★</button>
@@ -342,13 +447,13 @@ function render() {
       </td>
       <td><span class="prop-name">${d.name}</span><br><span style="color:#666;font-size:11px">${d.address}</span></td>
       <td>${d.area}</td>
-      <td class="price">${d.priceFlag ? '<span title="Price may be inaccurate" style="color:#f87171">$'+d.price.toLocaleString()+' ⚠️</span>' : '$'+d.price.toLocaleString()}</td>
-      <td>${d.concession ? `<span class="concession">${d.concession}</span>` : '—'}</td>
+      <td class="price editable" onclick="startEdit(this,${d._i},'price',true)">$${d.price.toLocaleString()}</td>
+      <td class="editable" onclick="startEdit(this,${d._i},'concession',false)">${d.concession ? `<span class="concession">${d.concession}</span>` : '<span style="color:#555">click to add</span>'}</td>
       <td class="price">${d.effective < d.price ? '<span style="color:#34d399">$'+d.effective.toLocaleString()+'</span> <span style="color:#666;font-size:11px">(-$'+(d.price - d.effective).toLocaleString()+')</span>' : '—'}</td>
       <td>${d.dt_stpete} min</td>
       <td>${d.beach_drive}</td>
-      <td>${d.nearest_beach}</td>
-      <td><span class="rating"><span class="star">★</span> ${d.rating}</span></td>
+      <td>${d.nearest_beach||''}</td>
+      <td class="editable" onclick="startEdit(this,${d._i},'rating',true)"><span class="rating"><span class="star">★</span> ${d.rating}</span></td>
       <td><span class="walk-score ${walkClass(d.walk)}">${d.walk}</span></td>
       <td><span class="safety ${safetyClass(d.safety)}">${d.safety}</span></td>
       <td>${d.year}</td>
@@ -357,30 +462,38 @@ function render() {
         ${d.zillow ? ` · <a href="${d.zillow}" target="_blank">Zillow</a>` : ''}
         ${d.phone ? `<br><span style="color:#888;font-size:11px">${d.phone}</span>` : ''}
       </td>
+      <td><button class="del-btn" onclick="deleteProperty(${d._i})" title="Remove">🗑</button></td>
     </tr>`;
   }).join('');
 }
 
-document.getElementById('search').addEventListener('input', render);
-document.getElementById('areaFilter').addEventListener('change', render);
-document.getElementById('concessionFilter').addEventListener('change', render);
+function initUI() {
+  refreshAreas();
+  document.getElementById('search').addEventListener('input', render);
+  document.getElementById('areaFilter').addEventListener('change', render);
+  document.getElementById('concessionFilter').addEventListener('change', render);
+  document.getElementById('favFilter').addEventListener('click', () => { showFavsOnly = !showFavsOnly; document.getElementById('favFilter').classList.toggle('on-fav', showFavsOnly); render(); });
+  document.getElementById('hideDownFilter').addEventListener('click', () => { hideDown = !hideDown; document.getElementById('hideDownFilter').classList.toggle('on-down', hideDown); render(); });
 
-document.getElementById('tbody').addEventListener('click', (e) => {
-  const btn = e.target.closest('.act-btn');
-  if (!btn) return;
-  toggleState(parseInt(btn.dataset.idx), parseInt(btn.dataset.action));
-});
-
-document.querySelectorAll('th[data-sort]').forEach(th => {
-  th.addEventListener('click', () => {
-    const col = th.dataset.sort;
-    if (sortCol === col) { sortAsc = !sortAsc; }
-    else { sortCol = col; sortAsc = true; }
-    render();
+  document.getElementById('tbody').addEventListener('click', (e) => {
+    const btn = e.target.closest('.act-btn');
+    if (!btn) return;
+    toggleState(parseInt(btn.dataset.idx), parseInt(btn.dataset.action));
   });
-});
 
-render();
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (sortCol === col) sortAsc = !sortAsc;
+      else { sortCol = col; sortAsc = true; }
+      render();
+    });
+  });
+
+  render();
+}
+
+loadAll();
 </script>
 </body>
 </html>

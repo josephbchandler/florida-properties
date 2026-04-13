@@ -138,7 +138,12 @@
 <div id="map"></div>
 
 <script>
-const DATA = [
+// --- Config ---
+const BIN_ID = '69dc60e5856a6821892957ac';
+const BIN_KEY = '$2a$10$SRUgPWxtOoUNlzr7cKyM2eC.k7uhVXgyf/GUrpd7jsoi5nWQVRCj6';
+const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+
+let DATA = [
   {name:"ARIUM Bristol Bay",area:"Bradenton",price:1603,concession:"",nearest_beach:"Holmes Beach",rating:4.5,address:"11001 Bristol Bay Dr, Bradenton, FL 34209",website:"https://ariumliving.com/bradenton-fl/bristol-bay/",zillow:"https://www.zillow.com/apartments/bradenton-fl/arium-bristol-bay/5Xhz8Y/",year:1989,walk:2,safety:"A+",dt_stpete:25,beach_drive:"15 min",lat:27.4625,lng:-82.6350},
   {name:"The Preserve at Gateway",area:"Saint Petersburg",price:1787,concession:"",nearest_beach:"St. Pete Beach",rating:4.3,address:"11800 Dr Martin Luther King Jr St N, Saint Petersburg, FL 33716",website:"https://www.udr.com/tampa-apartments/st-petersburg/the-preserve-at-gateway/",zillow:"https://www.zillow.com/apartments/saint-petersburg-fl/the-preserve-at-gateway/5YvqvP/",year:2013,walk:16,safety:"A",dt_stpete:10,beach_drive:"25 min",lat:27.8585,lng:-82.6340},
   {name:"The Blake at Bradenton",area:"Bradenton",price:1791,concession:"1 month free",nearest_beach:"Cortez Beach",rating:5,address:"6415 21st Avenue West, Bradenton, FL 34209",website:"https://www.theblakeatbradenton.com/",zillow:"https://www.zillow.com/apartments/bradenton-fl/the-blake-at-bradenton/CjKgzx/",year:1997,walk:21,safety:"A+",dt_stpete:25,beach_drive:"20 min",lat:27.4665,lng:-82.6100},
@@ -170,47 +175,41 @@ const DATA = [
   {name:"Cortland Satori",area:"Pinellas Park",price:2379,concession:"1 month free",nearest_beach:"Treasure Island",rating:4.5,address:"3110 Grand Ave, Pinellas Park, FL 33782",website:"https://cortland.com/apartments/cortland-satori/",zillow:"",year:2020,walk:40,safety:"C+",dt_stpete:20,beach_drive:"18 min",lat:27.8450,lng:-82.6750}
 ];
 
-// --- Shared state via jsonbin.io ---
-const BIN_ID = '69dc60e5856a6821892957ac';
-const BIN_KEY = '$2a$10$SRUgPWxtOoUNlzr7cKyM2eC.k7uhVXgyf/GUrpd7jsoi5nWQVRCj6';
-const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+// --- State + Data from JSONBin ---
 const states = {};
+let saving = false;
 
-async function loadStates() {
+async function loadAll() {
   try {
-    const resp = await fetch(BIN_URL + '/latest', {
-      headers: { 'X-Master-Key': BIN_KEY }
-    });
-    const data = await resp.json();
-    Object.assign(states, (data.record && data.record.states) || {});
-    renderMarkers();
-  } catch(e) {
-    try {
-      const saved = JSON.parse(localStorage.getItem('fl-prop-states') || '{}');
-      Object.assign(states, saved);
-    } catch(e2) {}
-    renderMarkers();
-  }
+    const resp = await fetch(BIN_URL + '/latest', { headers: { 'X-Master-Key': BIN_KEY } });
+    const json = await resp.json();
+    const rec = json.record || {};
+    if (rec.properties && rec.properties.length) DATA = rec.properties;
+    Object.assign(states, rec.states || {});
+  } catch(e) { console.error('Load failed, using fallback data:', e); }
+  initMap();
 }
 
-async function saveStates() {
-  localStorage.setItem('fl-prop-states', JSON.stringify(states));
+async function saveAll() {
+  if (saving) return;
+  saving = true;
+  const clean = DATA.map(d => { const c = {...d}; delete c.effective; delete c._i; return c; });
   try {
     await fetch(BIN_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY },
-      body: JSON.stringify({ states })
+      body: JSON.stringify({ properties: clean, states })
     });
-  } catch(e) { console.error('Sync failed:', e); }
+  } catch(e) { console.error('Save failed:', e); }
+  saving = false;
 }
 
 function getState(i) { return states[i] || 0; }
 function toggleState(i, target) {
   states[i] = getState(i) === target ? 0 : target;
-  saveStates();
+  saveAll();
   renderMarkers();
 }
-loadStates();
 
 function calcEffective(price, concession) {
   if (!concession) return price;
@@ -225,29 +224,38 @@ function calcEffective(price, concession) {
   return Math.round(price * (12 - monthsFree) / 12);
 }
 
-DATA.forEach((d, i) => { d.effective = calcEffective(d.price, d.concession); d._i = i; });
-
-// Populate area filter
-const areas = [...new Set(DATA.map(d => d.area))].sort();
-const areaSelect = document.getElementById('areaFilter');
-areas.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; areaSelect.appendChild(o); });
-
 let showFavsOnly = false;
 let hideDown = false;
+let map;
 
-document.getElementById('favFilter').addEventListener('click', () => {
-  showFavsOnly = !showFavsOnly;
-  document.getElementById('favFilter').classList.toggle('on-fav', showFavsOnly);
+function initMap() {
+  DATA.forEach((d, i) => { d.effective = calcEffective(d.price, d.concession); d._i = i; });
+
+  const areas = [...new Set(DATA.map(d => d.area))].sort();
+  const areaSelect = document.getElementById('areaFilter');
+  areaSelect.innerHTML = '<option value="">All Areas</option>';
+  areas.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; areaSelect.appendChild(o); });
+
+  document.getElementById('favFilter').addEventListener('click', () => {
+    showFavsOnly = !showFavsOnly;
+    document.getElementById('favFilter').classList.toggle('on-fav', showFavsOnly);
+    renderMarkers();
+  });
+  document.getElementById('hideDownFilter').addEventListener('click', () => {
+    hideDown = !hideDown;
+    document.getElementById('hideDownFilter').classList.toggle('on-down', hideDown);
+    renderMarkers();
+  });
+  document.getElementById('search').addEventListener('input', renderMarkers);
+  document.getElementById('areaFilter').addEventListener('change', renderMarkers);
+  document.getElementById('concessionFilter').addEventListener('change', renderMarkers);
+
   renderMarkers();
-});
-document.getElementById('hideDownFilter').addEventListener('click', () => {
-  hideDown = !hideDown;
-  document.getElementById('hideDownFilter').classList.toggle('on-down', hideDown);
-  renderMarkers();
-});
+  loadPOIs();
+}
 
 // Dark map tiles
-const map = L.map('map', { zoomControl: true }).setView([27.65, -82.55], 10);
+map = L.map('map', { zoomControl: true }).setView([27.65, -82.55], 10);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap &copy; CARTO',
   maxZoom: 18
@@ -282,6 +290,7 @@ function safetyClass(s) {
 let markers = [];
 
 function renderMarkers() {
+  DATA.forEach((d, i) => { d.effective = calcEffective(d.price, d.concession); d._i = i; });
   markers.forEach(m => map.removeLayer(m));
   markers = [];
 
@@ -355,11 +364,7 @@ function renderMarkers() {
   }
 }
 
-document.getElementById('search').addEventListener('input', renderMarkers);
-document.getElementById('areaFilter').addEventListener('change', renderMarkers);
-document.getElementById('concessionFilter').addEventListener('change', renderMarkers);
-
-renderMarkers();
+loadAll();
 
 // --- POI Layer ---
 const poiLayers = { tj: [], wf: [], pilates: [], coffee: [] };
