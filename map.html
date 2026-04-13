@@ -436,8 +436,6 @@ async function loadPOIs() {
 (
   node["brand"~"Trader Joe|Whole Foods"](${bbox});
   way["brand"~"Trader Joe|Whole Foods"](${bbox});
-  node["leisure"="fitness_centre"]["name"~"[Pp]ilates|[Bb]arre|[Yy]oga|[Rr]eformer|[Ss]tretch"](${bbox});
-  node["sport"~"pilates|yoga"](${bbox});
   node["amenity"="cafe"](${bbox});
   way["amenity"="cafe"](${bbox});
 );
@@ -473,8 +471,6 @@ out center;`;
         addPOIMarker('tj', lat, lng, name);
       } else if (brand.includes('whole foods')) {
         addPOIMarker('wf', lat, lng, name);
-      } else if (tags.leisure === 'fitness_centre' || tags.sport === 'pilates') {
-        addPOIMarker('pilates', lat, lng, name);
       } else if (tags.amenity === 'cafe') {
         const nl = name.toLowerCase();
         if (chainCoffee.some(c => nl.includes(c))) return;
@@ -482,12 +478,76 @@ out center;`;
       }
     });
 
+    // Hardcoded pilates/barre/yoga studios (OSM has poor coverage)
+    const studios = [
+      {n:"Club Pilates St. Petersburg",lat:27.7703,lng:-82.6401},
+      {n:"[solidcore] Edge District",lat:27.7690,lng:-82.6467},
+      {n:"BODYROK Downtown St. Pete",lat:27.7698,lng:-82.6438},
+      {n:"St. Pete Pilates",lat:27.7648,lng:-82.6796},
+      {n:"Barre Central",lat:27.7648,lng:-82.7237},
+      {n:"Club Pilates North St. Pete",lat:27.8118,lng:-82.6393},
+      {n:"Pure Barre St. Petersburg",lat:27.7898,lng:-82.6411},
+      {n:"Club Pilates St. Pete Beach",lat:27.7403,lng:-82.7265},
+      {n:"The Pilates Grüp",lat:27.7498,lng:-82.7325},
+      {n:"Your Pilates Lifestyle",lat:27.8368,lng:-82.7784},
+      {n:"Club Pilates Clearwater",lat:27.9555,lng:-82.8009},
+      {n:"Club Pilates Countryside",lat:28.0172,lng:-82.7251},
+      {n:"Pure Barre Clearwater",lat:27.9994,lng:-82.7243},
+      {n:"YogaSix Safety Harbor",lat:27.9994,lng:-82.7241},
+      {n:"My Pilates 24/7",lat:27.9551,lng:-82.8009},
+      {n:"The Pilates Haus",lat:27.9600,lng:-82.7990},
+      {n:"Art of Fitness",lat:27.9073,lng:-82.7875},
+      {n:"Club Pilates Largo",lat:27.8803,lng:-82.7596},
+      {n:"Club Pilates Lakewood Ranch",lat:27.4077,lng:-82.4019},
+      {n:"Club Pilates Braden River",lat:27.4308,lng:-82.4791},
+      {n:"Pure Barre Lakewood Ranch",lat:27.4063,lng:-82.4135},
+      {n:"Pure Barre Bradenton NW",lat:27.4890,lng:-82.6184},
+      {n:"barre3 Lakewood Ranch",lat:27.4255,lng:-82.4329},
+      {n:"Mantra Fitness Lakewood Ranch",lat:27.4063,lng:-82.4132},
+      {n:"The Pilates Place at LWR",lat:27.4241,lng:-82.4516},
+      {n:"YogaSix Lakewood Ranch",lat:27.4077,lng:-82.4016},
+      {n:"Mantra Fitness Sarasota",lat:27.2818,lng:-82.5256}
+    ];
+    studios.forEach(s => addPOIMarker('pilates', s.lat, s.lng, s.n));
+
     document.getElementById('poiLoading').textContent =
-      `${poiLayers.tj.length} TJ · ${poiLayers.wf.length} WF · ${poiLayers.pilates.length} pilates · ${poiLayers.coffee.length} coffee`;
+      `${poiLayers.tj.length} TJ · ${poiLayers.wf.length} WF · ${poiLayers.pilates.length} studios · ${poiLayers.coffee.length} coffee`;
     updatePOIVisibility();
     setTimeout(() => { document.getElementById('poiLoading').style.opacity = '0'; }, 3000);
   } catch(e) {
-    document.getElementById('poiLoading').textContent = 'POI load failed';
+    // Even if Overpass fails, load the hardcoded studios
+    const studios = [
+      {n:"Club Pilates St. Petersburg",lat:27.7703,lng:-82.6401},
+      {n:"[solidcore] Edge District",lat:27.7690,lng:-82.6467},
+      {n:"BODYROK Downtown St. Pete",lat:27.7698,lng:-82.6438},
+      {n:"St. Pete Pilates",lat:27.7648,lng:-82.6796},
+      {n:"Barre Central",lat:27.7648,lng:-82.7237},
+      {n:"Club Pilates North St. Pete",lat:27.8118,lng:-82.6393},
+      {n:"Pure Barre St. Petersburg",lat:27.7898,lng:-82.6411},
+      {n:"Club Pilates St. Pete Beach",lat:27.7403,lng:-82.7265},
+      {n:"The Pilates Grüp",lat:27.7498,lng:-82.7325},
+      {n:"Your Pilates Lifestyle",lat:27.8368,lng:-82.7784},
+      {n:"Club Pilates Clearwater",lat:27.9555,lng:-82.8009},
+      {n:"Club Pilates Countryside",lat:28.0172,lng:-82.7251},
+      {n:"Pure Barre Clearwater",lat:27.9994,lng:-82.7243},
+      {n:"YogaSix Safety Harbor",lat:27.9994,lng:-82.7241},
+      {n:"My Pilates 24/7",lat:27.9551,lng:-82.8009},
+      {n:"The Pilates Haus",lat:27.9600,lng:-82.7990},
+      {n:"Art of Fitness",lat:27.9073,lng:-82.7875},
+      {n:"Club Pilates Largo",lat:27.8803,lng:-82.7596},
+      {n:"Club Pilates Lakewood Ranch",lat:27.4077,lng:-82.4019},
+      {n:"Club Pilates Braden River",lat:27.4308,lng:-82.4791},
+      {n:"Pure Barre Lakewood Ranch",lat:27.4063,lng:-82.4135},
+      {n:"Pure Barre Bradenton NW",lat:27.4890,lng:-82.6184},
+      {n:"barre3 Lakewood Ranch",lat:27.4255,lng:-82.4329},
+      {n:"Mantra Fitness Lakewood Ranch",lat:27.4063,lng:-82.4132},
+      {n:"The Pilates Place at LWR",lat:27.4241,lng:-82.4516},
+      {n:"YogaSix Lakewood Ranch",lat:27.4077,lng:-82.4016},
+      {n:"Mantra Fitness Sarasota",lat:27.2818,lng:-82.5256}
+    ];
+    studios.forEach(s => addPOIMarker('pilates', s.lat, s.lng, s.n));
+    document.getElementById('poiLoading').textContent = `${poiLayers.pilates.length} studios (grocery/coffee failed)`;
+    updatePOIVisibility();
     console.error('Overpass error:', e);
   }
 }
