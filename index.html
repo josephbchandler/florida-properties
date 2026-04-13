@@ -174,25 +174,25 @@ const DATA = [
   {name:"Cortland Satori",area:"Pinellas Park",beach_drive:"18 min",dt_stpete:20,website:"https://cortland.com/apartments/cortland-satori/",price:2379,concession:"1 month free",nearest_beach:"Treasure Island",rating:4.5,address:"3110 Grand Ave, Pinellas Park, FL 33782",zillow:"",year:2020,phone:"(727) 610-2844",walk:40,safety:"C+"}
 ];
 
-// --- Shared state via jsonblob ---
-const BLOB_URL = 'https://jsonblob.com/api/jsonBlob/019d84d4-21a0-7fa3-92c2-44e7641c813a';
+// --- Shared state via jsonbin.io ---
+const BIN_ID = '69dc60e5856a6821892957ac';
+const BIN_KEY = '$2a$10$SRUgPWxtOoUNlzr7cKyM2eC.k7uhVXgyf/GUrpd7jsoi5nWQVRCj6';
+const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
 const states = {};
-let statesLoaded = false;
 
 async function loadStates() {
   try {
-    const resp = await fetch(BLOB_URL, { headers: { 'Accept': 'application/json' } });
+    const resp = await fetch(BIN_URL + '/latest', {
+      headers: { 'X-Master-Key': BIN_KEY }
+    });
     const data = await resp.json();
-    Object.assign(states, data.states || {});
-    statesLoaded = true;
+    Object.assign(states, (data.record && data.record.states) || {});
     render();
   } catch(e) {
-    // Fallback to localStorage
     try {
       const saved = JSON.parse(localStorage.getItem('fl-prop-states') || '{}');
       Object.assign(states, saved);
     } catch(e2) {}
-    statesLoaded = true;
     render();
   }
 }
@@ -200,9 +200,9 @@ async function loadStates() {
 async function saveStates() {
   localStorage.setItem('fl-prop-states', JSON.stringify(states));
   try {
-    await fetch(BLOB_URL, {
+    await fetch(BIN_URL, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY },
       body: JSON.stringify({ states })
     });
   } catch(e) { console.error('Sync failed:', e); }
