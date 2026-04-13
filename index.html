@@ -209,6 +209,7 @@ let DATA = [
 // --- State + Data from JSONBin ---
 const states = {};
 let saving = false;
+let loadedFromCloud = false;
 
 async function loadAll() {
   try {
@@ -217,15 +218,15 @@ async function loadAll() {
     const rec = json.record || {};
     if (rec.properties && rec.properties.length) DATA = rec.properties;
     Object.assign(states, rec.states || {});
+    loadedFromCloud = true;
   } catch(e) { console.error('Load failed, using fallback data:', e); }
   document.getElementById('loadingMsg').style.display = 'none';
   initUI();
 }
 
 async function saveAll() {
-  if (saving) return;
+  if (saving || !loadedFromCloud) { console.warn('Skipping save — not loaded from cloud yet'); return; }
   saving = true;
-  // Strip computed fields before saving
   const clean = DATA.map(d => { const c = {...d}; delete c.effective; delete c._i; return c; });
   try {
     await fetch(BIN_URL, {
