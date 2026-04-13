@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Move to Florida - Properties</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1117; color: #e0e0e0; padding: 24px; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; color: #fff; }
+  .subtitle { color: #888; font-size: 14px; margin-bottom: 20px; }
+
+  .controls { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .controls input, .controls select {
+    background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px;
+    color: #e0e0e0; padding: 8px 12px; font-size: 13px; outline: none;
+  }
+  .controls input:focus, .controls select:focus { border-color: #4a7dff; }
+  .controls input { width: 240px; }
+  .controls select {
+    min-width: 140px; appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    padding-right: 30px;
+  }
+
+  .stats { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-card {
+    background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 10px;
+    padding: 14px 20px; min-width: 150px;
+  }
+  .stat-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-size: 22px; font-weight: 700; color: #fff; margin-top: 4px; }
+  .stat-value.green { color: #34d399; }
+  .stat-value.blue { color: #60a5fa; }
+  .stat-value.amber { color: #fbbf24; }
+  .stat-value.red { color: #f87171; }
+
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #2a2d3a; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1400px; }
+  thead { background: #1a1d27; position: sticky; top: 0; z-index: 2; }
+  th {
+    padding: 10px 14px; text-align: left; font-weight: 600; color: #aaa;
+    border-bottom: 2px solid #2a2d3a; cursor: pointer; white-space: nowrap;
+    user-select: none; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  th:hover { color: #fff; }
+  th .arrow { margin-left: 4px; font-size: 10px; opacity: 0.3; }
+  th.active .arrow { opacity: 1; }
+  th.active { color: #60a5fa; }
+  td { padding: 10px 14px; border-bottom: 1px solid #1e2130; white-space: nowrap; }
+  tr:hover td { background: #1a1d27; }
+  tr.row-dimmed td { opacity: 0.35; }
+  tr.row-dimmed:hover td { opacity: 0.6; }
+
+  .prop-name { font-weight: 600; color: #fff; }
+  .price { font-weight: 600; color: #34d399; }
+  .concession { background: #1e3a2f; color: #34d399; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .rating { display: inline-flex; align-items: center; gap: 4px; }
+  .rating .star { color: #fbbf24; }
+  .safety { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 12px; }
+  .safety-a-plus { background: #064e3b; color: #34d399; }
+  .safety-a { background: #1e3a5f; color: #60a5fa; }
+  .safety-a-minus { background: #1e3a5f; color: #93c5fd; }
+  .safety-b-plus { background: #3b2f1e; color: #fbbf24; }
+  .safety-b { background: #3b2f1e; color: #fcd34d; }
+  .safety-b-minus { background: #3b1e1e; color: #f87171; }
+  .safety-c-plus { background: #3b2a1e; color: #fb923c; }
+  .safety-c { background: #3b2a1e; color: #fdba74; }
+
+  a { color: #60a5fa; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .walk-score { font-weight: 600; }
+  .ws-high { color: #34d399; }
+  .ws-mid { color: #fbbf24; }
+  .ws-low { color: #f87171; }
+
+  .no-results { text-align: center; padding: 40px; color: #666; font-size: 15px; }
+
+  .actions-cell { display: flex; gap: 2px; }
+  .act-btn { background: none; border: none; cursor: pointer; padding: 2px 5px; border-radius: 4px; transition: transform 0.15s; line-height: 1; display: inline-flex; align-items: center; }
+  .act-btn:hover { transform: scale(1.3); }
+  .act-btn.fav { font-size: 16px; color: #555; opacity: 0.35; }
+  .act-btn.fav.on { color: #fbbf24; opacity: 1; }
+  .act-btn.down { opacity: 0.35; }
+  .act-btn.down svg { width: 15px; height: 15px; stroke: #555; }
+  .act-btn.down.on { opacity: 1; }
+  .act-btn.down.on svg { stroke: #f87171; }
+
+  .pill-filter { display: flex; align-items: center; gap: 6px; background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; padding: 6px 12px; cursor: pointer; color: #e0e0e0; font-size: 13px; user-select: none; }
+  .pill-filter.on-fav { border-color: #fbbf24; color: #fbbf24; }
+  .pill-filter.on-down { border-color: #f87171; color: #f87171; }
+</style>
+</head>
+<body>
+
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;">
+  <div>
+    <h1>Move to Florida — Properties</h1>
+    <p class="subtitle" style="margin-bottom:0">29 apartment communities across Tampa Bay / Bradenton / St. Pete / Clearwater</p>
+  </div>
+  <a href="map.html" style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:8px;color:#60a5fa;padding:8px 16px;font-size:13px;text-decoration:none;">Map View</a>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="controls">
+  <input type="text" id="search" placeholder="Search properties, areas, beaches…">
+  <select id="areaFilter"><option value="">All Areas</option></select>
+  <div class="pill-filter" id="favFilter">★ Favorites only</div>
+  <div class="pill-filter" id="hideDownFilter">Hide rejected</div>
+  <select id="concessionFilter">
+    <option value="">All Properties</option>
+    <option value="has">Has Concession</option>
+    <option value="none">No Concession</option>
+  </select>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:60px;cursor:default"></th>
+        <th data-sort="name">Property <span class="arrow"></span></th>
+        <th data-sort="area">Area <span class="arrow"></span></th>
+        <th data-sort="price">2+ Bed Price <span class="arrow"></span></th>
+        <th data-sort="concession">Concession <span class="arrow"></span></th>
+        <th data-sort="effective">Effective Rent <span class="arrow"></span></th>
+        <th data-sort="dt_stpete">DT St. Pete <span class="arrow"></span></th>
+        <th data-sort="beach_drive">Beach Drive <span class="arrow"></span></th>
+        <th data-sort="nearest_beach">Nearest Beach <span class="arrow"></span></th>
+        <th data-sort="rating">Rating <span class="arrow"></span></th>
+        <th data-sort="walk">Walk Score <span class="arrow"></span></th>
+        <th data-sort="safety">Safety <span class="arrow"></span></th>
+        <th data-sort="year">Year Built <span class="arrow"></span></th>
+        <th>Links</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<script>
+const DATA = [
+  {name:"ARIUM Bristol Bay",area:"Bradenton",beach_drive:"15 min",dt_stpete:25,website:"https://ariumliving.com/bradenton-fl/bristol-bay/",price:1603,concession:"",nearest_beach:"Holmes Beach",rating:4.5,address:"11001 Bristol Bay Dr, Bradenton, FL 34209",zillow:"https://www.zillow.com/apartments/bradenton-fl/arium-bristol-bay/5Xhz8Y/",year:1989,phone:"(941) 216-2965",walk:2,safety:"A+"},
+  {name:"The Preserve at Gateway",area:"Saint Petersburg",beach_drive:"25 min",dt_stpete:10,website:"https://www.udr.com/tampa-apartments/st-petersburg/the-preserve-at-gateway/",price:1787,concession:"",nearest_beach:"St. Pete Beach",rating:4.3,address:"11800 Dr Martin Luther King Jr St N, Saint Petersburg, FL 33716",zillow:"https://www.zillow.com/apartments/saint-petersburg-fl/the-preserve-at-gateway/5YvqvP/",year:2013,phone:"(727) 216-8749",walk:16,safety:"A"},
+  {name:"The Blake at Bradenton",area:"Bradenton",beach_drive:"20 min",dt_stpete:25,website:"https://www.theblakeatbradenton.com/",price:1791,concession:"1 month free",nearest_beach:"Cortez Beach",rating:5,address:"6415 21st Avenue West, Bradenton, FL 34209",zillow:"https://www.zillow.com/apartments/bradenton-fl/the-blake-at-bradenton/CjKgzx/",year:1997,phone:"(941) 263-7016",walk:21,safety:"A+"},
+  {name:"Magnolia Estates",area:"Bradenton",beach_drive:"25 min",dt_stpete:29,website:"https://www.magnoliaestatesfl.com/magnolia-estates-bradenton-fl",price:1825,concession:"",nearest_beach:"Siesta Key Beach",rating:4.4,address:"6437 Brook Village Cove, Bradenton, FL 34202",zillow:"https://www.zillow.com/apartments/bradenton-fl/magnolia-estates/Cjkw3c/",year:2020,phone:"(941) 841-1395",walk:3,safety:"A+"},
+  {name:"Preserve at Riverwalk Apartments",area:"Bradenton",beach_drive:"20 min",dt_stpete:25,website:"https://www.preserveatriverwalk.com/",price:1834,concession:"6 weeks free",nearest_beach:"Cortez Beach",rating:4,address:"360 11th St E, Bradenton, FL 34208",zillow:"https://www.zillow.com/apartments/bradenton-fl/preserve-at-riverwalk-apartments/CkB9Gy/",year:2018,phone:"(941) 541-1330",walk:46,safety:"A-"},
+  {name:"The Rosery",area:"Largo",beach_drive:"15 min",dt_stpete:21,website:"https://www.theroseryapts.com/",price:1848,concession:"1 month free",nearest_beach:"Indian Rocks Beach",rating:4.5,address:"811 Rosery Rd NW, Largo, FL 33770",zillow:"https://www.zillow.com/apartments/largo-fl/the-rosery/CjrVQB/",year:1969,phone:"(727) 618-0032",walk:67,safety:"B+"},
+  {name:"Vida Lakewood Ranch",area:"Bradenton",beach_drive:"30 min",dt_stpete:29,website:"https://vidalwr.com/",price:1875,concession:"2 months free",nearest_beach:"Longboat Key",rating:4.8,address:"11109 Vida Cir, Bradenton, FL 34211",zillow:"https://www.zillow.com/apartments/bradenton-fl/vida-lakewood-ranch/CkBqDw/",year:2023,phone:"(941) 877-6938",walk:17,safety:"A+"},
+  {name:"Isla Palmetto",area:"Palmetto",beach_drive:"20 min",dt_stpete:30,website:"https://islapalmetto.com/",price:1893,concession:"10 weeks free",nearest_beach:"Bradenton Beach",rating:4,address:"6045 Bird Key Place, Palmetto, FL 34221",zillow:"https://www.zillow.com/apartments/palmetto-fl/isla-palmetto/CqYV2d/",year:2026,phone:"(941) 299-6810",walk:3,safety:"A+"},
+  {name:"ShoreView Waterfront Apartments",area:"Bradenton",beach_drive:"18 min",dt_stpete:25,website:"https://www.shoreviewbradenton.com/",price:1925,concession:"1 month free",nearest_beach:"Cortez Beach",rating:4.9,address:"1161 3rd Ave E, Bradenton, FL 34208",zillow:"https://www.zillow.com/apartments/bradenton-fl/shoreview-waterfront-apartments/Cknqkr/",year:2021,phone:"(941) 841-6605",walk:47,safety:"A-"},
+  {name:"Renata at Lakewood Ranch",area:"Bradenton",beach_drive:"30 min",dt_stpete:29,website:"https://www.renatalakewoodranch.com/",price:1930,concession:"2 months free",nearest_beach:"Lido Beach",rating:4.5,address:"5420 122nd Cir E, Bradenton, FL 34211",zillow:"https://www.zillow.com/apartments/bradenton-fl/renata-at-lakewood-ranch/CkCc4S/",year:2023,phone:"(941) 219-0433",walk:3,safety:"A+"},
+  {name:"Stafford at Artisan Lakes",area:"Palmetto",beach_drive:"20 min",dt_stpete:27,website:"https://www.liveatstafford.com/",price:1938,concession:"2 months free",nearest_beach:"Bradenton Beach",rating:4,address:"6210 Terra Lago Cir, Palmetto, FL 34221",zillow:"https://www.zillow.com/apartments/palmetto-fl/stafford-at-artisan-lakes/CkhMNR/",year:2025,phone:"(941) 352-5016",walk:2,safety:"A+"},
+  {name:"Blue Heron Lakes",area:"Bradenton",beach_drive:"25 min",dt_stpete:28,website:"https://blueheron-living.com/lakes",price:1946,concession:"",nearest_beach:"Coquina Beach",rating:4,address:"420 Salt Meadow Circle, Bradenton, FL 34208",zillow:"https://www.zillow.com/apartments/bradenton-fl/blue-heron-lakes/5XjC9M/",year:2016,phone:"(941) 747-8008",walk:50,safety:"A-"},
+  {name:"Palm Grove Luxury Apartments",area:"Ellenton",beach_drive:"25 min",dt_stpete:27,website:"https://www.liveatpalmgrove.com/",price:1965,concession:"10 weeks free",nearest_beach:"Bradenton Beach",rating:4.9,address:"2710 59th Dr E, Ellenton, FL 34222",zillow:"https://www.zillow.com/apartments/ellenton-fl/palm-grove-luxury-apartments/CkB9HJ/",year:2023,phone:"(941) 269-8661",walk:49,safety:"B+"},
+  {name:"Cantabria",area:"Bradenton",beach_drive:"20 min",dt_stpete:28,website:"https://www.cantabriabradenton.com/",price:1999,concession:"2 months free",nearest_beach:"Cortez Beach",rating:4.5,address:"4915 1st Ave E, Bradenton, FL 34208",zillow:"https://www.zillow.com/apartments/bradenton-fl/cantabria/CmnpPJ/",year:2021,phone:"(904) 977-2965",walk:2,safety:"A-"},
+  {name:"Cortland Brighton Bay",area:"Saint Petersburg",beach_drive:"25 min",dt_stpete:15,website:"https://cortland.com/apartments/cortland-brighton-bay/",price:2023,concession:"1 month free",nearest_beach:"St. Pete Beach",rating:4.4,address:"10901 Brighton Bay Boulevard NE, Saint Petersburg, FL 33716",zillow:"https://www.zillow.com/apartments/saint-petersburg-fl/cortland-brighton-bay/5Xnc86/",year:2001,phone:"(727) 477-8437",walk:26,safety:"A"},
+  {name:"Cirrus at Aqua",area:"Bradenton",beach_drive:"12 min",dt_stpete:28,website:"https://www.cirrusbradenton.com/",price:2079,concession:"2 months free",nearest_beach:"Cortez Beach",rating:4.6,address:"6850 Foxtail Palm Way, Bradenton, FL 34210",zillow:"https://www.zillow.com/apartments/bradenton-fl/cirrus-at-aqua/C8bXPM/",year:2023,phone:"(941) 841-6494",walk:0,safety:"A"},
+  {name:"Brixley",area:"Bradenton",beach_drive:"35 min",dt_stpete:28,website:"https://www.brixleyapartments.com/",price:2081,concession:"3 months free",nearest_beach:"Holmes Beach",rating:4,address:"1130 Upper Manatee River Rd NE, Bradenton, FL 34212",zillow:"https://www.zillow.com/apartments/bradenton-fl/brixley/CkBTrS/",year:2022,phone:"(941) 201-2916",walk:37,safety:"A+"},
+  {name:"Ellenton Crossings",area:"Ellenton",beach_drive:"22 min",dt_stpete:30,website:"https://ellentoncrossings.com/",price:2085,concession:"2 months free",nearest_beach:"Bradenton Beach",rating:4,address:"5950 Factory Shops Blvd, Ellenton, FL 34222",zillow:"https://www.zillow.com/apartments/ellenton-fl/ellenton-crossings/Cd4Mqy/",year:2025,phone:"(941) 213-8974",walk:56,safety:"B+"},
+  {name:"Venue at Lakewood Ranch",area:"Bradenton",beach_drive:"25 min",dt_stpete:28,website:"https://www.venuelakewoodranch.com/",price:2091,concession:"2 months free",nearest_beach:"Siesta Key Beach",rating:4.3,address:"8240 Lakewood Ranch Blvd, Bradenton, FL 34202",zillow:"https://www.zillow.com/apartments/bradenton-fl/venue-at-lakewood-ranch/5hJ2Y9/",year:2014,phone:"(941) 538-6987",walk:0,safety:"A+"},
+  {name:"Quinn Residences at Moccasin Wallow",area:"Parrish",beach_drive:"40 min",dt_stpete:45,website:"https://live-moccasin.com/",price:2100,concession:"4 half months free",nearest_beach:"Anna Maria Island",rating:4,address:"9009 Moccasin Wallow Road, Parrish, FL 34219",zillow:"https://www.zillow.com/apartments/parrish-fl/quinn-residences-at-moccasin-wallow/CkBcYt/",year:2025,phone:"(941) 398-0988",walk:0,safety:"A+"},
+  {name:"Rowan Pointe",area:"Pinellas Park",beach_drive:"15 min",dt_stpete:10,website:"https://www.liverowanpointe.com/",price:2279,concession:"4 weeks free",nearest_beach:"Madeira Beach",rating:4.7,address:"7950 Park Blvd, Pinellas Park, FL 33781",zillow:"https://www.zillow.com/apartments/pinellas-park-fl/rowan-pointe/CkBcYF/",year:2022,phone:"(727) 349-3524",walk:38,safety:"B-"},
+  {name:"Gallery 3100",area:"St. Petersburg",beach_drive:"12 min",dt_stpete:3,website:"https://www.gallery3100.com/",price:2303,concession:"6 weeks free",nearest_beach:"Treasure Island Beach",rating:4.8,address:"3100 Central Ave, St. Petersburg, FL 33712",zillow:"https://www.zillow.com/apartments/saint-petersburg-fl/gallery-3100/CkBgz6/",year:2021,phone:"(727) 273-8088",walk:82,safety:"B-"},
+  {name:"The Stadler Luxury Apartments",area:"Bradenton",beach_drive:"12 min",dt_stpete:28,website:"https://www.thestadlerliving.com/",price:2345,concession:"10 weeks free",nearest_beach:"Bradenton Beach",rating:4,address:"7120 Henry Dr, Bradenton, FL 34210",zillow:"https://www.zillow.com/apartments/bradenton-fl/the-stadler-luxury-apartments/CpsyJC/",year:2025,phone:"(941) 541-2976",walk:0,safety:"A+"},
+  {name:"Magnolia Carillon",area:"Saint Petersburg",beach_drive:"20 min",dt_stpete:8,website:"https://www.magnoliacarillon.com/",price:2349,concession:"6 weeks free",nearest_beach:"Indian Rocks Beach",rating:4.8,address:"500 Trinity Ln N, Saint Petersburg, FL 33716",zillow:"https://www.zillow.com/apartments/saint-petersburg-fl/magnolia-carillon/5XjWds/",year:1999,phone:"(727) 513-0994",walk:22,safety:"A+"},
+  {name:"The Addison Skyway Marina",area:"St. Petersburg",beach_drive:"10 min",dt_stpete:5,website:"https://missionrockresidential.com/apartments/fl/st-petersburg/addison-skyway-marina/",price:2424,concession:"6 weeks free",nearest_beach:"St. Pete Beach",rating:3.9,address:"3951 34th St S, Saint Petersburg, FL 33711",zillow:"https://www.zillow.com/apartments/saint-petersburg-fl/the-addison-skyway-marina/CkBHkb/",year:2021,phone:"(727) 308-7498",walk:50,safety:"B-"},
+  {name:"Marlowe Gateway",area:"Saint Petersburg",beach_drive:"20 min",dt_stpete:18,website:"https://www.livemarlowegateway.com/",price:2746,concession:"8 weeks free",nearest_beach:"Madeira Beach",rating:4.8,address:"2790 Grand Ave, St. Petersburg, FL 33716",zillow:"https://www.zillow.com/apartments/saint-petersburg-fl/marlowe-gateway/CkCRQR/",year:2023,phone:"(727) 428-6652",walk:30,safety:"A"},
+  {name:"Solano Belleair",area:"Clearwater",beach_drive:"10 min",dt_stpete:22,website:"https://solanobelleair.com/",price:2260,concession:"6 weeks free",nearest_beach:"Indian Rocks Beach",rating:4.8,address:"1632 Clearwater Largo Rd N, Clearwater, FL 33756",zillow:"",year:2022,phone:"(727) 977-1099",walk:50,safety:"B+"},
+  {name:"Arabelle Clearwater",area:"Clearwater",beach_drive:"15 min",dt_stpete:25,website:"https://arabelleclearwater.com/",price:2139,concession:"2 weeks free",nearest_beach:"Belleair Beach",rating:3.9,address:"1320 Sands Terrace E, Clearwater, FL 33764",zillow:"",year:2021,phone:"(855) 968-0875",walk:35,safety:"B+"},
+  {name:"Cortland Satori",area:"Pinellas Park",beach_drive:"18 min",dt_stpete:20,website:"https://cortland.com/apartments/cortland-satori/",price:2379,concession:"1 month free",nearest_beach:"Treasure Island",rating:4.5,address:"3110 Grand Ave, Pinellas Park, FL 33782",zillow:"",year:2020,phone:"(727) 610-2844",walk:40,safety:"C+"}
+];
+
+// --- Shared state via jsonblob ---
+const BLOB_URL = 'https://jsonblob.com/api/jsonBlob/019d84d4-21a0-7fa3-92c2-44e7641c813a';
+const states = {};
+let statesLoaded = false;
+
+async function loadStates() {
+  try {
+    const resp = await fetch(BLOB_URL, { headers: { 'Accept': 'application/json' } });
+    const data = await resp.json();
+    Object.assign(states, data.states || {});
+    statesLoaded = true;
+    render();
+  } catch(e) {
+    // Fallback to localStorage
+    try {
+      const saved = JSON.parse(localStorage.getItem('fl-prop-states') || '{}');
+      Object.assign(states, saved);
+    } catch(e2) {}
+    statesLoaded = true;
+    render();
+  }
+}
+
+async function saveStates() {
+  localStorage.setItem('fl-prop-states', JSON.stringify(states));
+  try {
+    await fetch(BLOB_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ states })
+    });
+  } catch(e) { console.error('Sync failed:', e); }
+}
+
+function getState(i) { return states[i] || 0; }
+function toggleState(i, target) {
+  states[i] = getState(i) === target ? 0 : target;
+  saveStates();
+  render();
+}
+loadStates();
+
+// Populate area filter
+const areas = [...new Set(DATA.map(d => d.area))].sort();
+const areaSelect = document.getElementById('areaFilter');
+areas.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; areaSelect.appendChild(o); });
+
+function parseDrive(s) { return parseInt(s) || 99; }
+
+function safetyClass(s) {
+  return 'safety-' + s.toLowerCase().replace('-','-minus').replace('+','-plus');
+}
+
+function walkClass(w) {
+  if (w >= 50) return 'ws-high';
+  if (w >= 20) return 'ws-mid';
+  return 'ws-low';
+}
+
+let sortCol = 'price';
+let sortAsc = true;
+let showFavsOnly = false;
+let hideDown = false;
+
+function toggleFavFilter() {
+  showFavsOnly = !showFavsOnly;
+  document.getElementById('favFilter').classList.toggle('on-fav', showFavsOnly);
+  render();
+}
+
+function toggleHideDown() {
+  hideDown = !hideDown;
+  document.getElementById('hideDownFilter').classList.toggle('on-down', hideDown);
+  render();
+}
+
+document.getElementById('favFilter').addEventListener('click', toggleFavFilter);
+document.getElementById('hideDownFilter').addEventListener('click', toggleHideDown);
+
+const safetyOrder = {'A+':8,'A':7,'A-':6,'B+':5,'B':4,'B-':3,'C+':2,'C':1};
+
+function calcEffective(price, concession) {
+  if (!concession) return price;
+  const c = concession.toLowerCase();
+  let monthsFree = 0;
+  const numMatch = c.match(/([\d.]+)/);
+  if (!numMatch) return price;
+  const num = parseFloat(numMatch[1]);
+  if (c.includes('half month')) { monthsFree = num * 0.5; }
+  else if (c.includes('week')) { monthsFree = num / 4.33; }
+  else if (c.includes('month')) { monthsFree = num; }
+  return Math.round(price * (12 - monthsFree) / 12);
+}
+
+DATA.forEach((d, i) => { d.effective = calcEffective(d.price, d.concession); d._i = i; });
+
+function sortData(arr) {
+  return arr.sort((a,b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    let cmp = 0;
+    if (sortCol === 'beach_drive') { va = parseDrive(va); vb = parseDrive(vb); cmp = va - vb; }
+    else if (sortCol === 'safety') { cmp = (safetyOrder[va]||0) - (safetyOrder[vb]||0); }
+    else if (sortCol === 'concession') { cmp = (va||'').localeCompare(vb||''); }
+    else if (typeof va === 'number') { cmp = va - vb; }
+    else { cmp = String(va).localeCompare(String(vb)); }
+    return sortAsc ? cmp : -cmp;
+  });
+}
+
+function updateHeaders() {
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    const col = th.dataset.sort;
+    th.classList.toggle('active', col === sortCol);
+    th.querySelector('.arrow').textContent = col === sortCol ? (sortAsc ? '▲' : '▼') : '↕';
+  });
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const area = document.getElementById('areaFilter').value;
+  const conc = document.getElementById('concessionFilter').value;
+
+  let filtered = DATA.filter(d => {
+    if (q && ![d.name, d.area, d.nearest_beach, d.address].some(f => f.toLowerCase().includes(q))) return false;
+    if (area && d.area !== area) return false;
+    if (conc === 'has' && !d.concession) return false;
+    if (conc === 'none' && d.concession) return false;
+    if (showFavsOnly && getState(d._i) !== 1) return false;
+    if (hideDown && getState(d._i) === 2) return false;
+    return true;
+  });
+
+  sortData(filtered);
+  updateHeaders();
+
+  const favCount = DATA.filter((_, i) => getState(i) === 1).length;
+  const downCount = DATA.filter((_, i) => getState(i) === 2).length;
+  const avg = filtered.length ? Math.round(filtered.reduce((s,d) => s + d.price, 0) / filtered.length) : 0;
+  const withConc = filtered.filter(d => d.concession).length;
+  const avgRating = filtered.length ? (filtered.reduce((s,d) => s + d.rating, 0) / filtered.length).toFixed(1) : '—';
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Properties</div><div class="stat-value">${filtered.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Avg 2BR Price</div><div class="stat-value green">$${avg.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">With Concessions</div><div class="stat-value amber">${withConc}</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Rating</div><div class="stat-value blue">${avgRating} ★</div></div>
+    <div class="stat-card"><div class="stat-label">Favorites</div><div class="stat-value amber">${favCount}</div></div>
+    <div class="stat-card"><div class="stat-label">Rejected</div><div class="stat-value red">${downCount}</div></div>
+  `;
+
+  const tbody = document.getElementById('tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="14" class="no-results">No properties match your filters</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(d => {
+    const s = getState(d._i);
+    const rowClass = s === 2 ? ' row-dimmed' : '';
+    return `
+    <tr class="${rowClass}">
+      <td>
+        <div class="actions-cell">
+          <button class="act-btn fav ${s===1?'on':''}" data-idx="${d._i}" data-action="1">★</button>
+          <button class="act-btn down ${s===2?'on':''}" data-idx="${d._i}" data-action="2"><svg viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" fill="none" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+      </td>
+      <td><span class="prop-name">${d.name}</span><br><span style="color:#666;font-size:11px">${d.address}</span></td>
+      <td>${d.area}</td>
+      <td class="price">${d.priceFlag ? '<span title="Price may be inaccurate" style="color:#f87171">$'+d.price.toLocaleString()+' ⚠️</span>' : '$'+d.price.toLocaleString()}</td>
+      <td>${d.concession ? `<span class="concession">${d.concession}</span>` : '—'}</td>
+      <td class="price">${d.effective < d.price ? '<span style="color:#34d399">$'+d.effective.toLocaleString()+'</span> <span style="color:#666;font-size:11px">(-$'+(d.price - d.effective).toLocaleString()+')</span>' : '—'}</td>
+      <td>${d.dt_stpete} min</td>
+      <td>${d.beach_drive}</td>
+      <td>${d.nearest_beach}</td>
+      <td><span class="rating"><span class="star">★</span> ${d.rating}</span></td>
+      <td><span class="walk-score ${walkClass(d.walk)}">${d.walk}</span></td>
+      <td><span class="safety ${safetyClass(d.safety)}">${d.safety}</span></td>
+      <td>${d.year}</td>
+      <td>
+        <a href="${d.website}" target="_blank">Site</a>
+        ${d.zillow ? ` · <a href="${d.zillow}" target="_blank">Zillow</a>` : ''}
+        ${d.phone ? `<br><span style="color:#888;font-size:11px">${d.phone}</span>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('areaFilter').addEventListener('change', render);
+document.getElementById('concessionFilter').addEventListener('change', render);
+
+document.getElementById('tbody').addEventListener('click', (e) => {
+  const btn = e.target.closest('.act-btn');
+  if (!btn) return;
+  toggleState(parseInt(btn.dataset.idx), parseInt(btn.dataset.action));
+});
+
+document.querySelectorAll('th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (sortCol === col) { sortAsc = !sortAsc; }
+    else { sortCol = col; sortAsc = true; }
+    render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>
