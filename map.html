@@ -130,7 +130,7 @@
   <span class="label">Show nearby:</span>
   <div class="poi-toggle on" data-cat="tj" onclick="togglePOI('tj')"><span class="dot" style="background:#f9a8d4"></span> Trader Joe's</div>
   <div class="poi-toggle on" data-cat="wf" onclick="togglePOI('wf')"><span class="dot" style="background:#c4a882"></span> Whole Foods</div>
-  <div class="poi-toggle on" data-cat="pilates" onclick="togglePOI('pilates')"><span class="dot" style="background:rgba(255,255,255,0.5)"></span> Pilates Studios</div>
+  <div class="poi-toggle on" data-cat="pilates" onclick="togglePOI('pilates')"><span class="dot" style="background:rgba(255,255,255,0.5)"></span> Pilates & Yoga</div>
   <div class="poi-toggle on" data-cat="coffee" onclick="togglePOI('coffee')"><span class="dot" style="background:rgba(255,255,255,0.5)"></span> Coffee Shops</div>
   <span class="poi-loading" id="poiLoading">Loading POIs...</span>
 </div>
@@ -418,7 +418,7 @@ map.on('zoomend', updatePOIVisibility);
 
 function addPOIMarker(cat, lat, lng, name) {
   const m = L.marker([lat, lng], { icon: makePOIIcon(cat), zIndexOffset: -100 });
-  const catLabel = {tj:"Trader Joe's",wf:"Whole Foods",pilates:"Pilates Studio",coffee:"Coffee Shop"}[cat];
+  const catLabel = {tj:"Trader Joe's",wf:"Whole Foods",pilates:"Pilates / Yoga Studio",coffee:"Coffee Shop"}[cat];
   m.bindPopup(`<div class="poi-popup"><div class="poi-popup-name">${name}</div><div class="poi-popup-cat">${catLabel}</div></div>`, { maxWidth: 220 });
   poiLayers[cat].push(m);
 }
@@ -436,8 +436,8 @@ async function loadPOIs() {
 (
   node["brand"~"Trader Joe|Whole Foods"](${bbox});
   way["brand"~"Trader Joe|Whole Foods"](${bbox});
-  node["leisure"="fitness_centre"]["name"~"[Pp]ilates|[Bb]arre|[Rr]eformer"](${bbox});
-  node["sport"="pilates"](${bbox});
+  node["leisure"="fitness_centre"]["name"~"[Pp]ilates|[Bb]arre|[Yy]oga|[Rr]eformer|[Ss]tretch"](${bbox});
+  node["sport"~"pilates|yoga"](${bbox});
   node["amenity"="cafe"](${bbox});
   way["amenity"="cafe"](${bbox});
 );
