@@ -109,7 +109,7 @@
 <div class="header">
   <div class="header-left">
     <h1>Move to Florida — Map View</h1>
-    <div class="subtitle">29 apartment communities across Tampa Bay / Bradenton / St. Pete / Clearwater</div>
+    <div class="subtitle"><span id="subtitle">Loading...</span></div>
   </div>
   <a class="nav-link" href="index.html">Table View</a>
 </div>
@@ -311,6 +311,8 @@ let markers = [];
 
 function renderMarkers() {
   DATA.forEach((d, i) => { d.effective = calcEffective(d.price, d.concession); d._i = i; });
+  const allAreas = [...new Set(DATA.map(d => d.area))].sort();
+  document.getElementById('subtitle').textContent = DATA.length + ' apartments across ' + allAreas.join(' / ');
   markers.forEach(m => map.removeLayer(m));
   markers = [];
 

@@ -120,7 +120,7 @@
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;">
   <div>
     <h1>Move to Florida — Properties</h1>
-    <p class="subtitle" style="margin-bottom:0">29 apartment communities across Tampa Bay / Bradenton / St. Pete / Clearwater</p>
+    <p class="subtitle" style="margin-bottom:0" id="subtitle">Loading...</p>
   </div>
   <a href="map.html" style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:8px;color:#60a5fa;padding:8px 16px;font-size:13px;text-decoration:none;">Map View</a>
 </div>
@@ -440,6 +440,8 @@ function updateHeaders() {
 
 function render() {
   DATA.forEach((d, i) => { d.effective = calcEffective(d.price, d.concession); d._i = i; });
+  const allAreas = [...new Set(DATA.map(d => d.area))].sort();
+  document.getElementById('subtitle').textContent = DATA.length + ' apartments across ' + allAreas.join(' / ');
   const q = document.getElementById('search').value.toLowerCase();
   const area = document.getElementById('areaFilter').value;
   const conc = document.getElementById('concessionFilter').value;
