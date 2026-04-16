@@ -195,19 +195,30 @@ async function loadAll() {
 async function saveAll() {
   if (saving || !loadedFromCloud) { console.warn('Skipping save — not loaded from cloud yet'); return; }
   saving = true;
-  const clean = DATA.map(d => { const c = {...d}; delete c.effective; delete c._i; return c; });
   try {
     const resp = await fetch(BIN_URL + '/latest', { headers: { 'X-Master-Key': BIN_KEY } });
     const json = await resp.json();
-    const cloudStates = (json.record && json.record.states) || {};
-    const merged = { ...cloudStates, ...states };
-    Object.keys(merged).forEach(k => { if (merged[k] === 0) delete merged[k]; });
+    const cloud = json.record || {};
+    const cloudProps = cloud.properties || [];
+    const cloudStates = cloud.states || {};
+
+    const cloudNames = new Set(cloudProps.map(p => p.name));
+    const localOnly = DATA.filter(d => !cloudNames.has(d.name)).map(d => { const c = {...d}; delete c.effective; delete c._i; return c; });
+    const mergedProps = [...cloudProps, ...localOnly];
+
+    DATA.length = 0;
+    mergedProps.forEach(p => DATA.push(p));
+
+    const mergedStates = { ...cloudStates, ...states };
+    Object.keys(mergedStates).forEach(k => { if (mergedStates[k] === 0) delete mergedStates[k]; });
     Object.keys(states).forEach(k => delete states[k]);
-    Object.assign(states, merged);
+    Object.assign(states, mergedStates);
+
+    const clean = mergedProps.map(d => { const c = {...d}; delete c.effective; delete c._i; return c; });
     await fetch(BIN_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY },
-      body: JSON.stringify({ properties: clean, states: merged })
+      body: JSON.stringify({ properties: clean, states: mergedStates })
     });
   } catch(e) { console.error('Save failed:', e); }
   saving = false;
