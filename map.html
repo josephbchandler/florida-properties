@@ -202,9 +202,10 @@ async function saveAll() {
     const cloudProps = cloud.properties || [];
     const cloudStates = cloud.states || {};
 
-    const cloudNames = new Set(cloudProps.map(p => p.name));
-    const localOnly = DATA.filter(d => !cloudNames.has(d.name)).map(d => { const c = {...d}; delete c.effective; delete c._i; return c; });
-    const mergedProps = [...cloudProps, ...localOnly];
+    const localNames = new Set(DATA.map(d => d.name));
+    const cloudOnly = cloudProps.filter(p => !localNames.has(p.name));
+    const localClean = DATA.map(d => { const c = {...d}; delete c.effective; delete c._i; return c; });
+    const mergedProps = [...localClean, ...cloudOnly];
 
     DATA.length = 0;
     mergedProps.forEach(p => DATA.push(p));

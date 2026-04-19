@@ -235,12 +235,13 @@ async function saveAll() {
     const cloudProps = cloud.properties || [];
     const cloudStates = cloud.states || {};
 
-    // Use cloud properties as base, merge any local-only additions
-    const cloudNames = new Set(cloudProps.map(p => p.name));
-    const localOnly = DATA.filter(d => !cloudNames.has(d.name)).map(d => { const c = {...d}; delete c.effective; delete c._i; return c; });
-    const mergedProps = [...cloudProps, ...localOnly];
+    // Local DATA wins for edits, cloud adds any properties local doesn't have
+    const localNames = new Set(DATA.map(d => d.name));
+    const cloudOnly = cloudProps.filter(p => !localNames.has(p.name));
+    const localClean = DATA.map(d => { const c = {...d}; delete c.effective; delete c._i; return c; });
+    const mergedProps = [...localClean, ...cloudOnly];
 
-    // Update local DATA to match cloud (pick up additions from other sources)
+    // Update local DATA to include any cloud additions
     DATA.length = 0;
     mergedProps.forEach(p => DATA.push(p));
 
