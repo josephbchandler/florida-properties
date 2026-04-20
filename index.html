@@ -149,6 +149,8 @@
         <th data-sort="name">Property <span class="arrow"></span></th>
         <th data-sort="area">Area <span class="arrow"></span></th>
         <th data-sort="price">2+ Bed Price <span class="arrow"></span></th>
+        <th data-sort="sqft">Sq Ft <span class="arrow"></span></th>
+        <th data-sort="ppsf">$/SqFt <span class="arrow"></span></th>
         <th data-sort="concession">Concession <span class="arrow"></span></th>
         <th data-sort="effective">Effective Rent <span class="arrow"></span></th>
         <th data-sort="dt_stpete">DT St. Pete <span class="arrow"></span></th>
@@ -279,6 +281,7 @@ function showEditModal(idx) {
     <label>Name</label><input id="ep_name" value="${(d.name||'').replace(/"/g,'&quot;')}">
     <label>Address</label><input id="ep_address" value="${(d.address||'').replace(/"/g,'&quot;')}">
     <div class="row"><div><label>Area</label><input id="ep_area" value="${d.area||''}"></div><div><label>2BR Price</label><input id="ep_price" type="number" value="${d.price||''}"></div></div>
+    <div class="row"><div><label>Square Feet</label><input id="ep_sqft" type="number" value="${d.sqft||''}"></div><div></div></div>
     <div class="row"><div><label>Concession</label><input id="ep_concession" value="${(d.concession||'').replace(/"/g,'&quot;')}"></div><div><label>Rating</label><input id="ep_rating" type="number" step="0.1" value="${d.rating||''}"></div></div>
     <div class="row"><div><label>Year Built</label><input id="ep_year" type="number" value="${d.year||''}"></div><div><label>Safety Grade</label><input id="ep_safety" value="${d.safety||''}"></div></div>
     <div class="row"><div><label>Walk Score</label><input id="ep_walk" type="number" value="${d.walk||''}"></div><div><label>DT St. Pete (min)</label><input id="ep_dt" type="number" value="${d.dt_stpete||''}"></div></div>
@@ -300,6 +303,7 @@ function saveEdit(idx) {
   d.address = document.getElementById('ep_address').value.trim();
   d.area = document.getElementById('ep_area').value.trim();
   d.price = parseFloat(document.getElementById('ep_price').value) || 0;
+  d.sqft = parseInt(document.getElementById('ep_sqft').value) || 0;
   d.concession = document.getElementById('ep_concession').value.trim();
   d.rating = parseFloat(document.getElementById('ep_rating').value) || 0;
   d.year = parseInt(document.getElementById('ep_year').value) || 0;
@@ -346,6 +350,7 @@ function showAddModal() {
     <label>Name *</label><input id="ap_name">
     <label>Address *</label><input id="ap_address">
     <div class="row"><div><label>Area *</label><input id="ap_area" placeholder="e.g. Bradenton"></div><div><label>2BR Price *</label><input id="ap_price" type="number"></div></div>
+    <div class="row"><div><label>Square Feet</label><input id="ap_sqft" type="number" placeholder="e.g. 1100"></div><div></div></div>
     <div class="row"><div><label>Concession</label><input id="ap_concession" placeholder="e.g. 2 months free"></div><div><label>Rating</label><input id="ap_rating" type="number" step="0.1" placeholder="4.5"></div></div>
     <div class="row"><div><label>Year Built</label><input id="ap_year" type="number"></div><div><label>Safety Grade</label><input id="ap_safety" placeholder="A+, A, B+, etc."></div></div>
     <div class="row"><div><label>Walk Score</label><input id="ap_walk" type="number"></div><div><label>DT St. Pete (min)</label><input id="ap_dt" type="number"></div></div>
@@ -367,6 +372,7 @@ function addProperty() {
   if (!name || !address || !area || !price) { alert('Name, address, area, and price are required.'); return; }
   const prop = {
     name, address, area, price,
+    sqft: parseInt(document.getElementById('ap_sqft').value) || 0,
     concession: document.getElementById('ap_concession').value.trim(),
     rating: parseFloat(document.getElementById('ap_rating').value) || 0,
     year: parseInt(document.getElementById('ap_year').value) || 0,
@@ -423,6 +429,8 @@ function sortData(arr) {
     let va = a[sortCol], vb = b[sortCol];
     let cmp = 0;
     if (sortCol === 'beach_drive') { va = parseDrive(va); vb = parseDrive(vb); cmp = va - vb; }
+    else if (sortCol === 'ppsf') { va = a.sqft ? a.price/a.sqft : 999; vb = b.sqft ? b.price/b.sqft : 999; cmp = va - vb; }
+    else if (sortCol === 'sqft') { va = a.sqft || 0; vb = b.sqft || 0; cmp = va - vb; }
     else if (sortCol === 'safety') { cmp = (safetyOrder[va]||0) - (safetyOrder[vb]||0); }
     else if (sortCol === 'concession') { cmp = (va||'').localeCompare(vb||''); }
     else if (typeof va === 'number') { cmp = va - vb; }
@@ -475,7 +483,7 @@ function render() {
   `;
 
   const tbody = document.getElementById('tbody');
-  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="15" class="no-results">No properties match your filters</td></tr>'; return; }
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="17" class="no-results">No properties match your filters</td></tr>'; return; }
 
   tbody.innerHTML = filtered.map(d => {
     const s = getState(d._i);
@@ -491,6 +499,8 @@ function render() {
       <td><span class="prop-name">${d.name}</span><br><span style="color:#666;font-size:11px">${d.address}</span></td>
       <td>${d.area}</td>
       <td class="price">$${d.price.toLocaleString()}</td>
+      <td>${d.sqft ? d.sqft.toLocaleString()+' sf' : '<span style="color:#555">—</span>'}</td>
+      <td>${d.sqft ? '$'+(d.price/d.sqft).toFixed(2) : '<span style="color:#555">—</span>'}</td>
       <td>${d.concession ? `<span class="concession">${d.concession}</span>` : '—'}</td>
       <td class="price">${d.effective < d.price ? '<span style="color:#34d399">$'+d.effective.toLocaleString()+'</span> <span style="color:#666;font-size:11px">(-$'+(d.price - d.effective).toLocaleString()+')</span>' : '—'}</td>
       <td>${d.dt_stpete} min</td>
