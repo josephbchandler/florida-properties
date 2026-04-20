@@ -113,6 +113,16 @@
   .modal-actions .cancel { background: #252836; color: #888; border: 1px solid #2a2d3a; }
 
   .loading { text-align: center; padding: 60px; color: #666; font-size: 15px; }
+
+  .col-menu { position: relative; display: inline-block; }
+  .col-menu-btn { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; color: #e0e0e0; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+  .col-menu-btn:hover { border-color: #60a5fa; }
+  .col-menu-panel { position: absolute; top: calc(100% + 6px); right: 0; background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; padding: 10px; min-width: 200px; z-index: 50; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+  .col-menu.open .col-menu-panel { display: block; }
+  .col-menu-panel label { display: flex; align-items: center; gap: 8px; padding: 4px 6px; cursor: pointer; font-size: 13px; color: #ccc; border-radius: 4px; }
+  .col-menu-panel label:hover { background: #252836; }
+  .col-menu-panel input { accent-color: #60a5fa; }
+  .col-hidden { display: none !important; }
 </style>
 </head>
 <body>
@@ -134,6 +144,10 @@
   <div class="pill-filter" id="favFilter">★ Favorites only</div>
   <div class="pill-filter" id="hideDownFilter">Hide rejected</div>
   <button class="add-btn" onclick="showAddModal()">+ Add Property</button>
+  <div class="col-menu" id="colMenu">
+    <button class="col-menu-btn" onclick="document.getElementById('colMenu').classList.toggle('open')">Columns ▾</button>
+    <div class="col-menu-panel" id="colMenuPanel"></div>
+  </div>
   <select id="concessionFilter">
     <option value="">All Properties</option>
     <option value="has">Has Concession</option>
@@ -147,20 +161,20 @@
       <tr>
         <th style="width:60px;cursor:default"></th>
         <th data-sort="name">Property <span class="arrow"></span></th>
-        <th data-sort="area">Area <span class="arrow"></span></th>
-        <th data-sort="price">2+ Bed Price <span class="arrow"></span></th>
-        <th data-sort="sqft">Sq Ft <span class="arrow"></span></th>
-        <th data-sort="ppsf">$/SqFt <span class="arrow"></span></th>
-        <th data-sort="concession">Concession <span class="arrow"></span></th>
-        <th data-sort="effective">Effective Rent <span class="arrow"></span></th>
-        <th data-sort="dt_stpete">DT St. Pete <span class="arrow"></span></th>
-        <th data-sort="beach_drive">Beach Drive <span class="arrow"></span></th>
-        <th data-sort="nearest_beach">Nearest Beach <span class="arrow"></span></th>
-        <th data-sort="rating">Rating <span class="arrow"></span></th>
-        <th data-sort="walk">Walk Score <span class="arrow"></span></th>
-        <th data-sort="safety">Safety <span class="arrow"></span></th>
-        <th data-sort="year">Year Built <span class="arrow"></span></th>
-        <th>Links</th>
+        <th data-sort="area" data-col="area">Area <span class="arrow"></span></th>
+        <th data-sort="price" data-col="price">2+ Bed Price <span class="arrow"></span></th>
+        <th data-sort="sqft" data-col="sqft">Sq Ft <span class="arrow"></span></th>
+        <th data-sort="ppsf" data-col="ppsf">$/SqFt <span class="arrow"></span></th>
+        <th data-sort="concession" data-col="concession">Concession <span class="arrow"></span></th>
+        <th data-sort="effective" data-col="effective">Effective Rent <span class="arrow"></span></th>
+        <th data-sort="dt_stpete" data-col="dt_stpete">DT St. Pete <span class="arrow"></span></th>
+        <th data-sort="beach_drive" data-col="beach_drive">Beach Drive <span class="arrow"></span></th>
+        <th data-sort="nearest_beach" data-col="nearest_beach">Nearest Beach <span class="arrow"></span></th>
+        <th data-sort="rating" data-col="rating">Rating <span class="arrow"></span></th>
+        <th data-sort="walk" data-col="walk">Walk Score <span class="arrow"></span></th>
+        <th data-sort="safety" data-col="safety">Safety <span class="arrow"></span></th>
+        <th data-sort="year" data-col="year">Year Built <span class="arrow"></span></th>
+        <th data-col="links">Links</th>
         <th style="width:30px;cursor:default"></th>
       </tr>
     </thead>
@@ -485,7 +499,7 @@ function render() {
   const tbody = document.getElementById('tbody');
   if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="17" class="no-results">No properties match your filters</td></tr>'; return; }
 
-  tbody.innerHTML = filtered.map(d => {
+  const tbodyHTML = filtered.map(d => {
     const s = getState(d._i);
     const rowClass = s === 2 ? 'row-dimmed' : '';
     return `
@@ -497,20 +511,20 @@ function render() {
         </div>
       </td>
       <td><span class="prop-name">${d.name}</span><br><span style="color:#666;font-size:11px">${d.address}</span></td>
-      <td>${d.area}</td>
-      <td class="price">$${d.price.toLocaleString()}</td>
-      <td>${d.sqft ? d.sqft.toLocaleString()+' sf' : '<span style="color:#555">—</span>'}</td>
-      <td>${d.sqft ? '$'+(d.price/d.sqft).toFixed(2) : '<span style="color:#555">—</span>'}</td>
-      <td>${d.concession ? `<span class="concession">${d.concession}</span>` : '—'}</td>
-      <td class="price">${d.effective < d.price ? '<span style="color:#34d399">$'+d.effective.toLocaleString()+'</span> <span style="color:#666;font-size:11px">(-$'+(d.price - d.effective).toLocaleString()+')</span>' : '—'}</td>
-      <td>${d.dt_stpete} min</td>
-      <td>${d.beach_drive}</td>
-      <td>${d.nearest_beach||''}</td>
-      <td><span class="rating"><span class="star">★</span> ${d.rating}</span></td>
-      <td><span class="walk-score ${walkClass(d.walk)}">${d.walk}</span></td>
-      <td><span class="safety ${safetyClass(d.safety)}">${d.safety}</span></td>
-      <td>${d.year}</td>
-      <td>
+      <td data-col="area">${d.area}</td>
+      <td class="price" data-col="price">$${d.price.toLocaleString()}</td>
+      <td data-col="sqft">${d.sqft ? d.sqft.toLocaleString()+' sf' : '<span style="color:#555">—</span>'}</td>
+      <td data-col="ppsf">${d.sqft ? '$'+(d.price/d.sqft).toFixed(2) : '<span style="color:#555">—</span>'}</td>
+      <td data-col="concession">${d.concession ? `<span class="concession">${d.concession}</span>` : '—'}</td>
+      <td class="price" data-col="effective">${d.effective < d.price ? '<span style="color:#34d399">$'+d.effective.toLocaleString()+'</span> <span style="color:#666;font-size:11px">(-$'+(d.price - d.effective).toLocaleString()+')</span>' : '—'}</td>
+      <td data-col="dt_stpete">${d.dt_stpete} min</td>
+      <td data-col="beach_drive">${d.beach_drive}</td>
+      <td data-col="nearest_beach">${d.nearest_beach||''}</td>
+      <td data-col="rating"><span class="rating"><span class="star">★</span> ${d.rating}</span></td>
+      <td data-col="walk"><span class="walk-score ${walkClass(d.walk)}">${d.walk}</span></td>
+      <td data-col="safety"><span class="safety ${safetyClass(d.safety)}">${d.safety}</span></td>
+      <td data-col="year">${d.year}</td>
+      <td data-col="links">
         <a href="${d.website}" target="_blank">Site</a>
         ${d.zillow ? ` · <a href="${d.zillow}" target="_blank">Zillow</a>` : ''}
         ${d.phone ? `<br><span style="color:#888;font-size:11px">${d.phone}</span>` : ''}
@@ -518,10 +532,48 @@ function render() {
       <td><button class="edit-btn" onclick="showEditModal(${d._i})" title="Edit">✏️</button></td>
     </tr>`;
   }).join('');
+  tbody.innerHTML = tbodyHTML;
+  applyColVisibility();
 }
+
+// --- Column visibility ---
+const COL_DEFS = [
+  {key:'area',label:'Area'}, {key:'price',label:'2+ Bed Price'}, {key:'sqft',label:'Sq Ft'},
+  {key:'ppsf',label:'$/SqFt'}, {key:'concession',label:'Concession'}, {key:'effective',label:'Effective Rent'},
+  {key:'dt_stpete',label:'DT St. Pete'}, {key:'beach_drive',label:'Beach Drive'}, {key:'nearest_beach',label:'Nearest Beach'},
+  {key:'rating',label:'Rating'}, {key:'walk',label:'Walk Score'}, {key:'safety',label:'Safety'},
+  {key:'year',label:'Year Built'}, {key:'links',label:'Links'}
+];
+let hiddenCols = new Set(JSON.parse(localStorage.getItem('fl-hidden-cols') || '[]'));
+
+function applyColVisibility() {
+  document.querySelectorAll('[data-col]').forEach(el => {
+    el.classList.toggle('col-hidden', hiddenCols.has(el.dataset.col));
+  });
+}
+
+function toggleCol(key) {
+  if (hiddenCols.has(key)) hiddenCols.delete(key);
+  else hiddenCols.add(key);
+  localStorage.setItem('fl-hidden-cols', JSON.stringify([...hiddenCols]));
+  applyColVisibility();
+}
+
+function buildColMenu() {
+  const panel = document.getElementById('colMenuPanel');
+  panel.innerHTML = COL_DEFS.map(c => `
+    <label><input type="checkbox" ${hiddenCols.has(c.key)?'':'checked'} onchange="toggleCol('${c.key}')"> ${c.label}</label>
+  `).join('');
+}
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('colMenu');
+  if (menu && !menu.contains(e.target)) menu.classList.remove('open');
+});
 
 function initUI() {
   refreshAreas();
+  buildColMenu();
   document.getElementById('search').addEventListener('input', render);
   document.getElementById('areaFilter').addEventListener('change', render);
   document.getElementById('concessionFilter').addEventListener('change', render);
