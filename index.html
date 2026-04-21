@@ -123,6 +123,7 @@
   .col-menu-panel label:hover { background: #252836; }
   .col-menu-panel input[type="checkbox"] { accent-color: #60a5fa; margin: 0 8px 0 0; vertical-align: middle; width: auto; padding: 0; border: 0; background: transparent; }
   .col-hidden { display: none !important; }
+  .greystar-badge { display: inline-block; background: #1e3a5f; color: #60a5fa; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; margin-left: 6px; letter-spacing: 0.3px; vertical-align: middle; }
 </style>
 </head>
 <body>
@@ -510,7 +511,7 @@ function render() {
           <button class="act-btn down ${s===2?'on':''}" data-idx="${d._i}" data-action="2"><svg viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" fill="none" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
       </td>
-      <td><span class="prop-name">${d.name}</span><br><span style="color:#666;font-size:11px">${d.address}</span></td>
+      <td><span class="prop-name">${d.name}</span>${d.greystar ? '<span class="greystar-badge">GREYSTAR</span>' : ''}<br><span style="color:#666;font-size:11px">${d.address}</span></td>
       <td data-col="area">${d.area}</td>
       <td class="price" data-col="price">$${d.price.toLocaleString()}</td>
       <td data-col="sqft">${d.sqft ? d.sqft.toLocaleString()+' sf' : '<span style="color:#555">—</span>'}</td>

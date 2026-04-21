@@ -78,6 +78,7 @@
   .safety-b-plus { background: #3b2f1e; color: #fbbf24; }
   .safety-b { background: #3b2f1e; color: #fcd34d; }
   .safety-b-minus { background: #3b1e1e; color: #f87171; }
+  .greystar-badge { display: inline-block; background: #1e3a5f; color: #60a5fa; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; margin-left: 6px; letter-spacing: 0.3px; }
   .safety-c-plus { background: #3b2a1e; color: #fb923c; }
   .safety-c { background: #3b2a1e; color: #fdba74; }
 
@@ -357,7 +358,7 @@ function renderMarkers() {
 
     marker.bindPopup(`
       <div class="popup">
-        <div class="popup-name">${d.name}</div>
+        <div class="popup-name">${d.name}${d.greystar ? '<span class="greystar-badge">GREYSTAR</span>' : ''}</div>
         <div class="popup-area">${d.area} &middot; Built ${d.year}</div>
         <div class="popup-actions">
           <button class="popup-act-btn fav ${s===1?'on':''}" onclick="toggleState(${d._i},1)">★</button>
