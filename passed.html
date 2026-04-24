@@ -12,19 +12,37 @@
   h1 { font-size: 22px; font-weight: 600; color: #fff; }
   .subtitle { color: #888; font-size: 14px; margin-top: 4px; }
   .nav { display: flex; gap: 8px; }
-  .nav a {
+  .nav a, .nav button {
     background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px;
-    color: #60a5fa; padding: 8px 16px; font-size: 13px; text-decoration: none;
+    color: #60a5fa; padding: 8px 16px; font-size: 13px; text-decoration: none; cursor: pointer;
   }
-  .nav a:hover { border-color: #4a7dff; }
+  .nav button { color: #34d399; }
+  .nav a:hover, .nav button:hover { border-color: #4a7dff; }
 
   .list { display: flex; flex-direction: column; gap: 8px; }
   .row {
     background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px;
-    padding: 12px 16px;
+    padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start;
   }
+  .row-main { flex: 1; }
   .name { font-weight: 600; color: #fff; font-size: 14px; margin-bottom: 4px; }
   .note { color: #aaa; font-size: 13px; line-height: 1.4; }
+  .del-btn { background: none; border: none; cursor: pointer; font-size: 14px; color: #555; opacity: 0.3; padding: 2px 6px; }
+  .del-btn:hover { opacity: 1; color: #f87171; }
+
+  .loading { text-align: center; padding: 60px; color: #666; font-size: 14px; }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .modal { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 12px; padding: 24px; width: 480px; max-width: 90vw; }
+  .modal h2 { font-size: 16px; color: #fff; margin-bottom: 16px; }
+  .modal label { display: block; font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 4px; margin-top: 12px; letter-spacing: 0.5px; }
+  .modal input, .modal textarea { width: 100%; background: #252836; border: 1px solid #2a2d3a; border-radius: 6px; color: #e0e0e0; padding: 8px 10px; font-size: 13px; outline: none; font-family: inherit; }
+  .modal input:focus, .modal textarea:focus { border-color: #4a7dff; }
+  .modal textarea { min-height: 80px; resize: vertical; }
+  .modal-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-actions button { padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; border: none; }
+  .modal-actions .save { background: #34d399; color: #000; font-weight: 600; }
+  .modal-actions .cancel { background: #252836; color: #888; border: 1px solid #2a2d3a; }
 </style>
 </head>
 <body>
@@ -32,55 +50,108 @@
 <div class="header">
   <div>
     <h1>Move to Florida — Passed On</h1>
-    <div class="subtitle">Properties researched but not on the active list</div>
+    <div class="subtitle" id="subtitle">Loading...</div>
   </div>
   <div class="nav">
+    <button onclick="showAddModal()">+ Add</button>
     <a href="index.html">Table</a>
     <a href="map.html">Map</a>
   </div>
 </div>
 
-<div class="list">
+<div id="list" class="loading">Loading passed properties...</div>
+<div id="modal" style="display:none"></div>
 
-  <div class="row"><div class="name">The Courtney at Bay Pines</div><div class="note">2019 stalking incident; management tipped off the stalker. D-rated management (GSC).</div></div>
+<script>
+const BIN_ID = '69dc60e5856a6821892957ac';
+const BIN_KEY = '$2a$10$SRUgPWxtOoUNlzr7cKyM2eC.k7uhVXgyf/GUrpd7jsoi5nWQVRCj6';
+const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
 
-  <div class="row"><div class="name">Vue at Belleair</div><div class="note">Greystar move-out billing horror stories. Car break-ins, police incidents, promised concessions not honored.</div></div>
+let PASSED = [];
+let loadedFromCloud = false;
 
-  <div class="row"><div class="name">Aluna Largo</div><div class="note">F-grade from 82 reviews. Rats and cockroaches. Management collapsed April 2025.</div></div>
+function esc(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-  <div class="row"><div class="name">Solaris Key</div><div class="note">Management blacklists residents who complain. Wide review-platform gap suggests suppression.</div></div>
+async function loadAll() {
+  try {
+    const resp = await fetch(BIN_URL + '/latest', { headers: { 'X-Master-Key': BIN_KEY } });
+    const json = await resp.json();
+    PASSED = (json.record && json.record.passed) || [];
+    loadedFromCloud = true;
+  } catch(e) { console.error('Load failed:', e); }
+  render();
+}
 
-  <div class="row"><div class="name">The Allure at Gateway</div><div class="note">Paper-thin walls, broken security gate since 2019, stalker threats ignored by management, roaches, predatory move-out billing.</div></div>
+async function saveAll() {
+  if (!loadedFromCloud) { console.warn('not loaded yet'); return; }
+  try {
+    // Read-modify-write to preserve properties + states
+    const resp = await fetch(BIN_URL + '/latest', { headers: { 'X-Master-Key': BIN_KEY } });
+    const json = await resp.json();
+    const full = json.record || {};
+    full.passed = PASSED;
+    await fetch(BIN_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY },
+      body: JSON.stringify(full)
+    });
+  } catch(e) { console.error('Save failed:', e); }
+}
 
-  <div class="row"><div class="name">The Crossings at Palm Aire</div><div class="note">Mold in HVAC testing in worst 5% of US homes. Management refused lease break.</div></div>
+function render() {
+  document.getElementById('subtitle').textContent = `${PASSED.length} properties researched but not on the active list`;
+  const list = document.getElementById('list');
+  list.className = 'list';
+  if (!PASSED.length) { list.innerHTML = '<div class="loading">No passed properties yet.</div>'; return; }
+  list.innerHTML = PASSED.map((p, i) => `
+    <div class="row">
+      <div class="row-main">
+        <div class="name">${esc(p.name)}</div>
+        <div class="note">${esc(p.note)}</div>
+      </div>
+      <button class="del-btn" onclick="deletePassed(${i})" title="Remove">🗑</button>
+    </div>
+  `).join('');
+}
 
-  <div class="row"><div class="name">Citria</div><div class="note">Silverfish and bug infestations. 2.3/5 staff rating. Aggressive concession signals vacancy pressure.</div></div>
+function showAddModal() {
+  const modal = document.getElementById('modal');
+  modal.style.display = '';
+  modal.className = 'modal-bg';
+  modal.innerHTML = `<div class="modal">
+    <h2>Add to Passed</h2>
+    <label>Property Name</label>
+    <input id="ap_name" placeholder="e.g. Some Apartments LLC">
+    <label>Reason</label>
+    <textarea id="ap_note" placeholder="Why did we pass on this?"></textarea>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal()">Cancel</button>
+      <button class="save" onclick="addPassed()">Add</button>
+    </div>
+  </div>`;
+  setTimeout(() => document.getElementById('ap_name').focus(), 0);
+}
 
-  <div class="row"><div class="name">Hue Watercolor Place</div><div class="note">D- rating. Management fabricated move-out damage charges with manipulated photos. BBB complaint filed.</div></div>
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
-  <div class="row"><div class="name">Stellar at Masters Avenue</div><div class="note">Yelp reviews describe it as "rent way too high for the trashiest place."</div></div>
+function addPassed() {
+  const name = document.getElementById('ap_name').value.trim();
+  const note = document.getElementById('ap_note').value.trim();
+  if (!name) { alert('Name required.'); return; }
+  PASSED.push({ name, note });
+  saveAll();
+  closeModal();
+  render();
+}
 
-  <div class="row"><div class="name">The Boulevard</div><div class="note">$241/month in hidden mandatory fees on top of advertised rent. True cost is $2,436/mo.</div></div>
+function deletePassed(i) {
+  if (!confirm('Remove ' + PASSED[i].name + '?')) return;
+  PASSED.splice(i, 1);
+  saveAll();
+  render();
+}
 
-  <div class="row"><div class="name">Symphony Lakes</div><div class="note">"6 months free" baked into advertised rate. Real base rent ~$3,826/mo. Unreasonable year-2 renewal risk.</div></div>
-
-  <div class="row"><div class="name">Linz Bayview</div><div class="note">Over budget. 2BR starts at $2,924.</div></div>
-
-  <div class="row"><div class="name">Camden Central</div><div class="note">Over budget at $2,579. Best walkability in corridor (Walk Score 96) but no concession.</div></div>
-
-  <div class="row"><div class="name">VIV</div><div class="note">2BR starts at $4,075. Way over budget.</div></div>
-
-  <div class="row"><div class="name">The Concord Luxury Apartments</div><div class="note">Only 1 affordable unit available. 55 min from DT St. Pete.</div></div>
-
-  <div class="row"><div class="name">Estia at Lakewood Ranch</div><div class="note">Unique bungalow format but doesn't lead any category. 50 min from DT St. Pete. D management grade across portfolio.</div></div>
-
-  <div class="row"><div class="name">Cypress Winds</div><div class="note">Built 1973. AC infrastructure problems. D safety grade. 40 min to St. Pete.</div></div>
-
-  <div class="row"><div class="name">TGM Bay Isle</div><div class="note">Mid-pack across all categories. No reason to prefer it over existing options.</div></div>
-
-  <div class="row"><div class="name">The Met</div><div class="note">Workforce housing, income-restricted to 60-80% AMI. Would be a strong pick otherwise (Walk Score 77, hurricane-resilient, no red flags).</div></div>
-
-</div>
-
+loadAll();
+</script>
 </body>
 </html>
